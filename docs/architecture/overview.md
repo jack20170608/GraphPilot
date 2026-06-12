@@ -1,23 +1,23 @@
-# GraphPilot Architecture Overview
+# GraphPilot 架构概览
 
-GraphPilot is designed as a DAG-first task orchestration platform with a Java backend following hexagonal architecture and a modern Next.js web console.
+GraphPilot 被设计为一个 DAG-first 的任务编排平台，后端采用基于 Hexagonal Architecture 的 Java 架构，前端采用现代化的 Next.js Web Console。
 
-## System Areas
+## 系统领域
 
-- DAG definition and validation
-- Scheduler and dependency resolver
+- DAG 定义与校验
+- Scheduler 与 dependency resolver
 - Task execution runtime
 - Metadata store
 - API service
-- Web console
-- Observability and alerting
-- Plugin and integration system
+- Web Console
+- Observability 与 alerting
+- Plugin 与 integration system
 
-## Backend Architecture
+## 后端架构
 
-The backend uses ports and adapters so the core model is not bound to a specific web container, dependency injection framework, persistence layer, security layer, or scheduler implementation.
+后端采用 Ports and Adapters，使核心模型不绑定特定 Web container、Dependency Injection framework、Persistence layer、Security layer 或 Scheduler implementation。
 
-Dependency direction:
+依赖方向：
 
 ```text
 bootstrap -> adapters -> application -> domain
@@ -25,26 +25,26 @@ bootstrap -> adapters -> application -> domain
 
 ### Core Modules
 
-- `graphpilot-domain` — pure domain model, value objects, domain services, domain events, and domain exceptions.
-- `graphpilot-application` — use cases, inbound ports, outbound ports, commands, queries, and application services.
+- `graphpilot-domain` — 纯 domain model、value objects、domain services、domain events 和 domain exceptions。
+- `graphpilot-application` — use cases、inbound ports、outbound ports、commands、queries 和 application services。
 
 ### Adapter Modules
 
-- `graphpilot-adapter-web-spring` — Spring Web REST adapter.
-- `graphpilot-adapter-persistence-mybatis` — MyBatis persistence adapter.
-- Future adapters may include Spring Security, Quartz scheduling, Redis locks/events, Kubernetes workers, Docker workers, or alternative persistence implementations.
+- `graphpilot-adapter-web-spring` — Spring Web REST adapter。
+- `graphpilot-adapter-persistence-mybatis` — MyBatis persistence adapter。
+- 未来 adapters 可能包括 Spring Security、Quartz scheduling、Redis locks/events、Kubernetes workers、Docker workers 或其它 persistence implementations。
 
 ### Bootstrap Module
 
-- `graphpilot-bootstrap-spring` — Spring Boot application that wires selected adapters together.
+- `graphpilot-bootstrap-spring` — 负责把选定 adapters 装配为 Spring Boot application。
 
-## Frontend Architecture
+## 前端架构
 
-The frontend is planned as a Next.js application using TypeScript, Tailwind CSS, Zustand, React Flow, TanStack Query, and shadcn/ui.
+前端计划采用 Next.js，并使用 TypeScript、Tailwind CSS、Zustand、React Flow、TanStack Query 和 shadcn/ui。
 
-## Open Architectural Questions
+## 待确认的架构问题
 
-- Should workflow definitions be created as code, UI metadata, YAML, or all three?
-- Which persistence adapter should be implemented first: MyBatis XML, MyBatis annotations, or jOOQ?
-- Which execution adapter should be first: local worker, shell executor, HTTP executor, or container executor?
-- What belongs in open core versus commercial enterprise features?
+- Workflow definitions 应该通过代码、UI metadata、YAML 创建，还是三者都支持？
+- 第一版 persistence adapter 应该采用 MyBatis XML、MyBatis annotations，还是 jOOQ？
+- 第一版 execution adapter 应该采用 local worker、shell executor、HTTP executor，还是 container executor？
+- 哪些能力属于 open core，哪些属于 commercial enterprise features？

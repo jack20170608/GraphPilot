@@ -1,8 +1,8 @@
 # GraphPilot Web Console
 
-This app will host the GraphPilot web console.
+该应用用于承载 GraphPilot Web Console。
 
-Planned stack:
+计划技术栈：
 
 - Next.js
 - TypeScript
@@ -13,11 +13,11 @@ Planned stack:
 - TanStack Table
 - shadcn/ui
 
-Planned areas:
+计划功能区域：
 
-- Workflow list and detail pages
-- DAG editor and viewer
-- Workflow run monitoring
-- Task instance logs
-- Schedule management
-- Settings and administration
+- Workflow 列表和详情页
+- DAG 编辑器和查看器
+- Workflow run 监控
+- Task instance 日志
+- Schedule 管理
+- Settings 和 Administration

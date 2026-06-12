@@ -1,19 +1,19 @@
-# ADR 0002: Technology Stack
+# ADR 0002: 技术栈
 
-## Status
+## 状态
 
-Accepted
+已接受
 
-## Context
+## 背景
 
-GraphPilot needs to support a modern DAG editing and operations console while also providing a reliable enterprise-oriented backend for task orchestration, scheduling, and execution.
+GraphPilot 需要支持现代化的 DAG 编辑与运维控制台，同时提供可靠的企业级后端，用于任务编排、调度和执行。
 
-## Decision
+## 决策
 
-Use the following initial technology stack:
+采用以下初始技术栈：
 
 ```text
-Frontend:
+前端:
   Next.js
   TypeScript
   Tailwind CSS
@@ -22,22 +22,22 @@ Frontend:
   TanStack Query
   shadcn/ui
 
-Backend:
+后端:
   Java 21
   Maven multi-module
-  Hexagonal architecture
+  Hexagonal Architecture
   Spring Boot as the first bootstrap and web adapter
 
-Infrastructure:
+基础设施:
   PostgreSQL
   Redis
   Docker Compose for local development
 ```
 
-## Consequences
+## 影响
 
-- Java 21 and Maven fit enterprise backend development and long-running services.
-- The backend can expose Spring Boot adapters first while keeping core logic framework-independent.
-- Next.js and Tailwind support a modern, product-quality web console.
-- React Flow is well suited to DAG visualization and editing.
-- PostgreSQL and Redis provide a practical foundation for metadata, coordination, queues, and locks.
+- Java 21 和 Maven 适合企业级后端开发以及长期运行的服务。
+- 后端可以优先暴露 Spring Boot adapters，同时保持核心逻辑 framework-independent。
+- Next.js 和 Tailwind 有助于构建现代化、产品级的 Web Console。
+- React Flow 非常适合 DAG visualization 和 editing。
+- PostgreSQL 和 Redis 为 metadata、coordination、queues 和 locks 提供实用基础。

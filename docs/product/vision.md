@@ -1,20 +1,20 @@
-# GraphPilot Product Vision
+# GraphPilot 产品愿景
 
-## One-line Positioning
+## 一句话定位
 
-GraphPilot 图驭 is a modern DAG orchestration platform for enterprise task scheduling, workflow automation, and operational control.
+GraphPilot 图驭是一个现代化的 DAG 编排平台，面向企业级任务调度、工作流自动化和运维控制场景。
 
-## Target Users
+## 目标用户
 
-- Data engineering teams that need reliable batch workflow orchestration.
-- Platform engineering teams that need an internal scheduling and automation platform.
-- Operations teams that need visibility, dependency management, alerting, and recovery workflows.
-- Enterprises that need a modern alternative to legacy workload automation platforms.
+- 需要可靠批处理工作流编排的数据工程团队。
+- 需要内部调度与自动化平台的平台工程团队。
+- 需要可视化、依赖管理、告警和恢复流程的运维团队。
+- 需要现代化替代传统 workload automation 平台的企业用户。
 
-## Early Product Principles
+## 早期产品原则
 
-1. DAG-first workflow model.
-2. Reliable scheduling and recovery over clever abstractions.
-3. Clear operational visibility by default.
-4. Extensible execution model.
-5. Open core with enterprise-grade commercial expansion paths.
+1. 以 DAG 为核心的工作流模型。
+2. 优先保证可靠调度和失败恢复，而不是追求过度抽象。
+3. 默认提供清晰的运维可观测性。
+4. 可扩展的执行模型。
+5. Open core，并为企业级商业能力保留扩展路径。

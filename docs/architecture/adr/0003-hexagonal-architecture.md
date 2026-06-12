@@ -1,36 +1,36 @@
-# ADR 0003: Hexagonal Backend Architecture
+# ADR 0003: 后端 Hexagonal Architecture
 
-## Status
+## 状态
 
-Accepted
+已接受
 
-## Context
+## 背景
 
-GraphPilot's backend domain model should not be tied to a specific web container, dependency injection framework, persistence technology, security layer, scheduler, or worker implementation.
+GraphPilot 的后端 domain model 不应绑定到特定 Web container、Dependency Injection framework、Persistence technology、Security layer、Scheduler 或 Worker implementation。
 
-The platform should be able to evolve from Spring Web + MyBatis to other adapters without rewriting the domain and application core.
+平台应该能够从 Spring Web + MyBatis 演进到其它 adapters，而不需要重写 domain 和 application core。
 
-## Decision
+## 决策
 
-Use hexagonal architecture, also known as ports and adapters.
+采用 Hexagonal Architecture，也称为 Ports and Adapters。
 
-The backend dependency direction is:
+后端依赖方向为：
 
 ```text
 bootstrap -> adapters -> application -> domain
 ```
 
-Rules:
+规则：
 
-- `graphpilot-domain` has no framework dependencies.
-- `graphpilot-application` depends only on `graphpilot-domain`.
-- Adapter modules depend on `graphpilot-application` and implement its outbound ports or invoke its inbound ports.
-- `graphpilot-bootstrap-spring` composes selected adapters and starts the Spring Boot runtime.
-- Business rules live in domain/application, not adapters.
+- `graphpilot-domain` 不包含 framework dependencies。
+- `graphpilot-application` 只依赖 `graphpilot-domain`。
+- Adapter modules 依赖 `graphpilot-application`，并实现其 outbound ports 或调用其 inbound ports。
+- `graphpilot-bootstrap-spring` 负责组合选定 adapters 并启动 Spring Boot runtime。
+- Business rules 位于 domain/application，而不是 adapters。
 
-## Consequences
+## 影响
 
-- The core model is easier to test without a Spring context.
-- Persistence, web, scheduler, lock, event, and worker technologies can be swapped by adding adapters.
-- Maven module boundaries help enforce architectural dependency direction.
-- Adapters require explicit mapping between external DTOs/entities and core domain objects.
+- 核心模型更容易在不启动 Spring context 的情况下测试。
+- Persistence、web、scheduler、lock、event 和 worker 技术可以通过新增 adapters 替换。
+- Maven module boundaries 有助于强制约束架构依赖方向。
+- Adapters 需要在 external DTOs/entities 与 core domain objects 之间进行显式映射。

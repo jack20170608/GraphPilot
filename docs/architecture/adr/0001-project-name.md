@@ -1,19 +1,19 @@
-# ADR 0001: Project Name
+# ADR 0001: 项目名称
 
-## Status
+## 状态
 
-Accepted
+已接受
 
-## Context
+## 背景
 
-The project needs a name that communicates DAG-based orchestration, operational control, and future commercial potential.
+项目需要一个能够表达 DAG 编排、运维控制和未来商业化潜力的名称。
 
-## Decision
+## 决策
 
-Use **GraphPilot** as the English product name and **图驭** as the Chinese name.
+英文产品名使用 **GraphPilot**，中文名使用 **图驭**。
 
-## Consequences
+## 影响
 
-- `Graph` communicates workflow dependencies and DAG structure.
-- `Pilot` communicates guidance, control, navigation, and automation.
-- The name can support open-source and commercial editions.
+- `Graph` 表达 workflow dependencies 和 DAG structure。
+- `Pilot` 表达引导、控制、导航和自动化。
+- 该名称可以同时支撑 open-source edition 和 commercial edition。

@@ -5,6 +5,8 @@
 ## 项目规则
 
 1. 所有项目文档都必须使用中文编写，除非用户明确要求使用其它语言。
+2. 后端项目使用 JDK 21。生成 Java 代码时优先使用 JDK 21 的现代语言特性，例如 records、sealed types、pattern matching、switch expressions、text blocks、不可变集合和虚拟线程适用场景；但不得为了炫技牺牲可读性、可测试性或 Hexagonal Architecture 边界。
+3. 当前开发终端是 Git Bash。即使运行在 Windows 系统上，也应优先使用 Bash 风格命令；除非确有必要或用户明确要求，避免使用 Windows PowerShell 专用命令。
 
 ## 项目概览
 

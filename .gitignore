@@ -32,3 +32,6 @@ logs/
 *.tmp
 *.temp
 .cache/
+
+# Local code intelligence indexes
+.codegraph/

@@ -15,6 +15,7 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push)",
+      "Bash(git push *)",
       "Bash(git push origin *)",
       "Bash(mvn -f backend\\pom.xml validate*)",
       "Bash(mvn -f backend\\pom.xml compile*)",
@@ -68,5 +69,12 @@
       "Bash(pnpm publish*)"
     ],
     "defaultMode": "default"
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "The user has authorized Claude Code to push committed changes from this GraphPilot repository to configured remotes for automation, including direct pushes to origin/main when Claude has just created and verified the commit.",
+      "Allow git push commands for this repository, while still respecting explicit deny rules such as force-push bans."
+    ]
   }
 }

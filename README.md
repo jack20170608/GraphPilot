@@ -45,6 +45,7 @@ GraphPilot/
     graphpilot-domain/                   # 纯领域模型，不依赖框架
     graphpilot-application/              # Use cases 和 ports
     graphpilot-adapter-web-spring/       # Spring Web REST adapter
+    graphpilot-adapter-persistence-memory/ # 本地开发与早期纵向切片内存适配器
     graphpilot-adapter-persistence-mybatis/
     graphpilot-bootstrap-spring/         # Spring Boot 组装模块
   docs/

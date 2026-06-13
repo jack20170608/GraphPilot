@@ -17,12 +17,17 @@
     <dependencies>
         <dependency>
             <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.graphpilot</groupId>
             <artifactId>graphpilot-adapter-web-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-persistence-mybatis</artifactId>
+            <artifactId>graphpilot-adapter-persistence-memory</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -32,6 +37,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

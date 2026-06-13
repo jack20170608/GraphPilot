@@ -31,12 +31,13 @@ bootstrap -> adapters -> application -> domain
 ### Adapter Modules
 
 - `graphpilot-adapter-web-spring` — Spring Web REST adapter。
-- `graphpilot-adapter-persistence-mybatis` — MyBatis persistence adapter。
+- `graphpilot-adapter-persistence-memory` — 面向本地开发和早期纵向切片验证的 in-memory persistence adapter。
+- `graphpilot-adapter-persistence-mybatis` — MyBatis persistence adapter，目前保留为后续 PostgreSQL 持久化实现入口，尚未接入默认启动装配。
 - 未来 adapters 可能包括 Spring Security、Quartz scheduling、Redis locks/events、Kubernetes workers、Docker workers 或其它 persistence implementations。
 
 ### Bootstrap Module
 
-- `graphpilot-bootstrap-spring` — 负责把选定 adapters 装配为 Spring Boot application。
+- `graphpilot-bootstrap-spring` — 负责把选定 adapters 装配为 Spring Boot application。当前默认装配 Spring Web adapter 与 in-memory persistence adapter，使创建工作流 API 可在无数据库配置时本地运行。
 
 ## 前端架构
 

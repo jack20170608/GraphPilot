@@ -1,5 +1,6 @@
 package com.graphpilot.adapter.web.spring.workflow;
 
+import com.graphpilot.application.workflow.WorkflowNotFoundException;
 import com.graphpilot.domain.dag.DagValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -24,6 +25,14 @@ class WorkflowHttpExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ProblemDetail handleUnreadableRequestBody(HttpMessageNotReadableException exception) {
         return badRequestProblem("Workflow request body is malformed");
+    }
+
+    @ExceptionHandler(WorkflowNotFoundException.class)
+    ProblemDetail handleWorkflowNotFound(WorkflowNotFoundException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+        problemDetail.setTitle("Workflow not found");
+        problemDetail.setDetail("Workflow was not found");
+        return problemDetail;
     }
 
     private static ProblemDetail badRequestProblem(String detail) {

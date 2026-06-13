@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRepository;
 import com.graphpilot.application.workflow.port.in.CreateWorkflowUseCase;
+import com.graphpilot.application.workflow.port.in.QueryWorkflowUseCase;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +17,15 @@ class GraphPilotApplicationTest {
     private CreateWorkflowUseCase createWorkflowUseCase;
 
     @Autowired
+    private QueryWorkflowUseCase queryWorkflowUseCase;
+
+    @Autowired
     private WorkflowRepository workflowRepository;
 
     @Test
     void loadsWorkflowBeans() {
         assertThat(createWorkflowUseCase).isNotNull();
+        assertThat(queryWorkflowUseCase).isNotNull();
         assertThat(workflowRepository).isInstanceOf(InMemoryWorkflowRepository.class);
     }
 }

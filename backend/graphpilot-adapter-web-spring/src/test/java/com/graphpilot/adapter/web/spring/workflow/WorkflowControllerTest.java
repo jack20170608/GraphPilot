@@ -4,16 +4,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.graphpilot.application.workflow.WorkflowNotFoundException;
 import com.graphpilot.application.workflow.command.CreateWorkflowCommand;
 import com.graphpilot.application.workflow.port.in.CreateWorkflowUseCase;
+import com.graphpilot.application.workflow.port.in.QueryWorkflowUseCase;
+import com.graphpilot.domain.dag.DagDefinition;
+import com.graphpilot.domain.dag.DagEdge;
 import com.graphpilot.domain.dag.DagValidationException;
+import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
+import com.graphpilot.domain.workflow.Workflow;
 import com.graphpilot.domain.workflow.WorkflowId;
+import com.graphpilot.domain.workflow.WorkflowName;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +42,9 @@ class WorkflowControllerTest {
 
     @MockBean
     private CreateWorkflowUseCase createWorkflowUseCase;
+
+    @MockBean
+    private QueryWorkflowUseCase queryWorkflowUseCase;
 
     @Test
     void createsWorkflow() throws Exception {
@@ -132,5 +145,53 @@ class WorkflowControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Invalid workflow request"))
                 .andExpect(jsonPath("$.detail").value("Workflow request body is malformed"));
+    }
+
+    @Test
+    void getsWorkflowById() throws Exception {
+        Workflow workflow = Workflow.create(
+                WorkflowId.of("workflow-1"),
+                WorkflowName.of("Daily ETL"),
+                new DagDefinition(
+                        List.of(
+                                new TaskDefinition(TaskId.of("extract"), "Extract data"),
+                                new TaskDefinition(TaskId.of("load"), "Load data")),
+                        List.of(new DagEdge(TaskId.of("extract"), TaskId.of("load")))),
+                Instant.parse("2026-06-13T00:00:00Z"));
+        when(queryWorkflowUseCase.findById(WorkflowId.of("workflow-1"))).thenReturn(workflow);
+
+        mockMvc.perform(get("/api/workflows/workflow-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("workflow-1"))
+                .andExpect(jsonPath("$.name").value("Daily ETL"))
+                .andExpect(jsonPath("$.tasks[0].id").value("extract"))
+                .andExpect(jsonPath("$.tasks[0].name").value("Extract data"))
+                .andExpect(jsonPath("$.tasks[1].id").value("load"))
+                .andExpect(jsonPath("$.tasks[1].name").value("Load data"))
+                .andExpect(jsonPath("$.edges[0].fromTaskId").value("extract"))
+                .andExpect(jsonPath("$.edges[0].toTaskId").value("load"))
+                .andExpect(jsonPath("$.createdAt").value("2026-06-13T00:00:00Z"));
+
+        verify(queryWorkflowUseCase).findById(WorkflowId.of("workflow-1"));
+    }
+
+    @Test
+    void returnsNotFoundWhenWorkflowDoesNotExist() throws Exception {
+        WorkflowId workflowId = WorkflowId.of("missing-workflow");
+        when(queryWorkflowUseCase.findById(workflowId))
+                .thenThrow(new WorkflowNotFoundException(workflowId));
+
+        mockMvc.perform(get("/api/workflows/missing-workflow"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Workflow not found"))
+                .andExpect(jsonPath("$.detail").value("Workflow was not found"));
+    }
+
+    @Test
+    void returnsBadRequestWhenWorkflowIdIsBlank() throws Exception {
+        mockMvc.perform(get("/api/workflows/%20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid workflow request"))
+                .andExpect(jsonPath("$.detail").value("Workflow request failed validation"));
     }
 }

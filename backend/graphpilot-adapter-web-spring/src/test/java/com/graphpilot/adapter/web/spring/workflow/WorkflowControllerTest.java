@@ -194,4 +194,76 @@ class WorkflowControllerTest {
                 .andExpect(jsonPath("$.title").value("Invalid workflow request"))
                 .andExpect(jsonPath("$.detail").value("Workflow request failed validation"));
     }
+
+    @Test
+    void listsWorkflows() throws Exception {
+        Workflow workflow1 = Workflow.create(
+                WorkflowId.of("workflow-1"),
+                WorkflowName.of("Daily ETL"),
+                new DagDefinition(
+                        List.of(
+                                new TaskDefinition(TaskId.of("extract"), "Extract data"),
+                                new TaskDefinition(TaskId.of("load"), "Load data")),
+                        List.of(new DagEdge(TaskId.of("extract"), TaskId.of("load")))),
+                Instant.parse("2026-06-13T00:00:00Z"));
+        Workflow workflow2 = Workflow.create(
+                WorkflowId.of("workflow-2"),
+                WorkflowName.of("Weekly Report"),
+                new DagDefinition(
+                        List.of(new TaskDefinition(TaskId.of("report"), "Build report")),
+                        List.of()),
+                Instant.parse("2026-06-13T00:01:00Z"));
+        when(queryWorkflowUseCase.findAll(50)).thenReturn(List.of(workflow1, workflow2));
+
+        mockMvc.perform(get("/api/workflows"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("workflow-1"))
+                .andExpect(jsonPath("$[0].name").value("Daily ETL"))
+                .andExpect(jsonPath("$[0].tasks[0].id").value("extract"))
+                .andExpect(jsonPath("$[0].tasks[0].name").value("Extract data"))
+                .andExpect(jsonPath("$[0].tasks[1].id").value("load"))
+                .andExpect(jsonPath("$[0].tasks[1].name").value("Load data"))
+                .andExpect(jsonPath("$[0].edges[0].fromTaskId").value("extract"))
+                .andExpect(jsonPath("$[0].edges[0].toTaskId").value("load"))
+                .andExpect(jsonPath("$[0].createdAt").value("2026-06-13T00:00:00Z"))
+                .andExpect(jsonPath("$[1].id").value("workflow-2"))
+                .andExpect(jsonPath("$[1].name").value("Weekly Report"))
+                .andExpect(jsonPath("$[1].tasks[0].id").value("report"))
+                .andExpect(jsonPath("$[1].tasks[0].name").value("Build report"))
+                .andExpect(jsonPath("$[1].edges").isEmpty())
+                .andExpect(jsonPath("$[1].createdAt").value("2026-06-13T00:01:00Z"));
+
+        verify(queryWorkflowUseCase).findAll(50);
+    }
+
+    @Test
+    void listsNoWorkflowsWhenRepositoryIsEmpty() throws Exception {
+        when(queryWorkflowUseCase.findAll(50)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/workflows"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+
+        verify(queryWorkflowUseCase).findAll(50);
+    }
+
+    @Test
+    void listsWorkflowsWithCustomLimit() throws Exception {
+        when(queryWorkflowUseCase.findAll(2)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/workflows?limit=2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+
+        verify(queryWorkflowUseCase).findAll(2);
+    }
+
+    @Test
+    void returnsBadRequestWhenListLimitIsOutOfRange() throws Exception {
+        mockMvc.perform(get("/api/workflows?limit=101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid workflow request"))
+                .andExpect(jsonPath("$.detail").value("Workflow request failed validation"));
+    }
 }

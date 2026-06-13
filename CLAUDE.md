@@ -7,6 +7,7 @@
 1. 所有项目文档都必须使用中文编写，除非用户明确要求使用其它语言。
 2. 后端项目使用 JDK 21。生成 Java 代码时优先使用 JDK 21 的现代语言特性，例如 records、sealed types、pattern matching、switch expressions、text blocks、不可变集合和虚拟线程适用场景；但不得为了炫技牺牲可读性、可测试性或 Hexagonal Architecture 边界。
 3. 当前开发终端是 Git Bash。即使运行在 Windows 系统上，也应优先使用 Bash 风格命令；除非确有必要或用户明确要求，避免使用 Windows PowerShell 专用命令。
+4. 本项目优先使用 auto mode 风格自动化执行：在已有明确目标、验证路径和安全边界时，Claude Code 应尽量直接执行读写、测试、commit、普通 `git push` 等操作，减少反复向用户确认；但仍不得绕过明确的 deny 规则、不得执行 force push、破坏性删除或其它高风险操作。
 
 ## 项目概览
 

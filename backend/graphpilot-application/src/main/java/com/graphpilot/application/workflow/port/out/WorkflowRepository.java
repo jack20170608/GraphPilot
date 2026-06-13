@@ -2,6 +2,7 @@ package com.graphpilot.application.workflow.port.out;
 
 import com.graphpilot.domain.workflow.Workflow;
 import com.graphpilot.domain.workflow.WorkflowId;
+import java.util.List;
 import java.util.Optional;
 
 public interface WorkflowRepository {
@@ -9,4 +10,6 @@ public interface WorkflowRepository {
     Workflow save(Workflow workflow);
 
     Optional<Workflow> findById(WorkflowId workflowId);
+
+    List<Workflow> findAll(int limit);
 }

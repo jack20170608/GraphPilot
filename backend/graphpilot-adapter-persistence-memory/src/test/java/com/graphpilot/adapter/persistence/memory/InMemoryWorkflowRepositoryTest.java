@@ -44,7 +44,41 @@ class InMemoryWorkflowRepositoryTest {
                 .hasMessage("workflowId must not be null");
     }
 
+    @Test
+    void findsAllWorkflowsOrderedByCreatedAtThenId() {
+        Workflow workflowB = workflow(
+                "workflow-b",
+                "Workflow B",
+                Instant.parse("2026-06-13T00:00:00Z"));
+        Workflow workflowA = workflow(
+                "workflow-a",
+                "Workflow A",
+                Instant.parse("2026-06-13T00:00:00Z"));
+        Workflow workflowC = workflow(
+                "workflow-c",
+                "Workflow C",
+                Instant.parse("2026-06-13T00:01:00Z"));
+
+        repository.save(workflowC);
+        repository.save(workflowB);
+        repository.save(workflowA);
+
+        assertThat(repository.findAll(10)).containsExactly(workflowA, workflowB, workflowC);
+        assertThat(repository.findAll(2)).containsExactly(workflowA, workflowB);
+    }
+
+    @Test
+    void rejectsNonPositiveListLimit() {
+        assertThatThrownBy(() -> repository.findAll(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Workflow query limit must be positive");
+    }
+
     private static Workflow workflow(String id, String name) {
+        return workflow(id, name, CREATED_AT);
+    }
+
+    private static Workflow workflow(String id, String name, Instant createdAt) {
         DagDefinition dag = new DagDefinition(
                 List.of(new TaskDefinition(TaskId.of("extract"), "Extract data")),
                 List.of());
@@ -52,6 +86,6 @@ class InMemoryWorkflowRepositoryTest {
                 WorkflowId.of(id),
                 WorkflowName.of(name),
                 dag,
-                CREATED_AT);
+                createdAt);
     }
 }

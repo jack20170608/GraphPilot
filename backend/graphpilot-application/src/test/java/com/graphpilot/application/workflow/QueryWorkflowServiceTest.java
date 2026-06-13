@@ -66,6 +66,25 @@ class QueryWorkflowServiceTest {
                 .hasMessage("workflowId must not be null");
     }
 
+    @Test
+    void findsAllWorkflows() {
+        Workflow workflow1 = workflow("workflow-1", "Daily ETL");
+        Workflow workflow2 = workflow("workflow-2", "Weekly ETL");
+        when(workflowRepository.findAll(50)).thenReturn(List.of(workflow1, workflow2));
+
+        List<Workflow> workflows = service.findAll(50);
+
+        assertThat(workflows).containsExactly(workflow1, workflow2);
+        verify(workflowRepository).findAll(50);
+    }
+
+    @Test
+    void rejectsNonPositiveListLimit() {
+        assertThatThrownBy(() -> service.findAll(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Workflow query limit must be positive");
+    }
+
     private static Workflow workflow(String id, String name) {
         DagDefinition dag = new DagDefinition(
                 List.of(new TaskDefinition(TaskId.of("extract"), "Extract data")),

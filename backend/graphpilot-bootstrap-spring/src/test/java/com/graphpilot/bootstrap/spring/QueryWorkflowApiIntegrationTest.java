@@ -2,6 +2,7 @@ package com.graphpilot.bootstrap.spring;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +59,49 @@ class QueryWorkflowApiIntegrationTest {
         assertThat(response.getBody()).containsEntry("detail", "Workflow was not found");
     }
 
+    @Test
+    void listsWorkflowsCreatedThroughHttpApi() {
+        ResponseEntity<Map<String, Object>> firstCreateResponse = postWorkflow("""
+                {
+                  "name": "List API Workflow A",
+                  "tasks": [
+                    { "id": "extract-a", "name": "Extract A" }
+                  ],
+                  "edges": []
+                }
+                """);
+        ResponseEntity<Map<String, Object>> secondCreateResponse = postWorkflow("""
+                {
+                  "name": "List API Workflow B",
+                  "tasks": [
+                    { "id": "extract-b", "name": "Extract B" }
+                  ],
+                  "edges": []
+                }
+                """);
+        assertThat(firstCreateResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(secondCreateResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        String firstWorkflowId = firstCreateResponse.getBody().get("id").toString();
+        String secondWorkflowId = secondCreateResponse.getBody().get("id").toString();
+
+        ResponseEntity<List<Map<String, Object>>> listResponse = listWorkflows();
+
+        assertThat(listResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(listResponse.getBody())
+                .extracting(workflow -> workflow.get("id"))
+                .contains(firstWorkflowId, secondWorkflowId);
+        assertThat(listResponse.getBody())
+                .filteredOn(workflow -> workflow.get("id").equals(firstWorkflowId))
+                .singleElement()
+                .satisfies(workflow -> {
+                    assertThat(workflow).containsEntry("name", "List API Workflow A");
+                    assertThat(workflow).containsKey("createdAt");
+                    assertThat(workflow.get("tasks")).asList().hasSize(1);
+                    assertThat(workflow.get("edges")).asList().isEmpty();
+                });
+    }
+
     private ResponseEntity<Map<String, Object>> postWorkflow(String requestBody) {
         return restTemplate.exchange(
                 "/api/workflows",
@@ -69,6 +113,14 @@ class QueryWorkflowApiIntegrationTest {
     private ResponseEntity<Map<String, Object>> getWorkflow(String workflowId) {
         return restTemplate.exchange(
                 "/api/workflows/" + workflowId,
+                HttpMethod.GET,
+                new HttpEntity<>(null),
+                new ParameterizedTypeReference<>() {});
+    }
+
+    private ResponseEntity<List<Map<String, Object>>> listWorkflows() {
+        return restTemplate.exchange(
+                "/api/workflows",
                 HttpMethod.GET,
                 new HttpEntity<>(null),
                 new ParameterizedTypeReference<>() {});

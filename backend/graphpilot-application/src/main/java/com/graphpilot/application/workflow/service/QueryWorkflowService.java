@@ -5,6 +5,7 @@ import com.graphpilot.application.workflow.port.in.QueryWorkflowUseCase;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.workflow.Workflow;
 import com.graphpilot.domain.workflow.WorkflowId;
+import java.util.List;
 import java.util.Objects;
 
 public final class QueryWorkflowService implements QueryWorkflowUseCase {
@@ -22,5 +23,13 @@ public final class QueryWorkflowService implements QueryWorkflowUseCase {
         Objects.requireNonNull(workflowId, "workflowId must not be null");
         return workflowRepository.findById(workflowId)
                 .orElseThrow(() -> new WorkflowNotFoundException(workflowId));
+    }
+
+    @Override
+    public List<Workflow> findAll(int limit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Workflow query limit must be positive");
+        }
+        return workflowRepository.findAll(limit);
     }
 }

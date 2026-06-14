@@ -69,4 +69,16 @@ bootstrap -> adapters -> application -> domain
 
 ## 当前状态
 
-项目骨架已初始化。产品范围、领域模型和具体 MVP 功能仍在设计中。
+后端已完成 Workflow 基础纵向切片，当前 Spring Web adapter 暴露以下 API：
+
+- `POST /api/workflows` 创建 Workflow。
+- `GET /api/workflows/{id}` 查询单个 Workflow。
+- `GET /api/workflows?limit=50` 按限制数量列出 Workflows。
+
+默认 profile 使用 in-memory persistence，适合无数据库配置的本地开发和快速验证。启用 `postgres` profile 时，后端使用 PostgreSQL、Flyway 和 MyBatis 提供 Workflow create/get/list 持久化能力，并要求显式提供以下环境变量，不提供默认值：
+
+- `GRAPHPILOT_POSTGRES_URL`
+- `GRAPHPILOT_POSTGRES_USER`
+- `GRAPHPILOT_POSTGRES_PASSWORD`
+
+本地 PostgreSQL 可通过 `infra/docker-compose.yml` 启动。自动化持久化测试使用 Testcontainers；当 Docker 不可用时，相关测试会跳过而不是失败。

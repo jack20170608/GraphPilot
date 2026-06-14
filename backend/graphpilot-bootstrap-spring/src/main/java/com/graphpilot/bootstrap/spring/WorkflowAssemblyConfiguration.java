@@ -12,11 +12,13 @@ import com.graphpilot.application.workflow.service.CreateWorkflowService;
 import com.graphpilot.application.workflow.service.QueryWorkflowService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
 class WorkflowAssemblyConfiguration {
 
     @Bean
+    @Profile("!postgres")
     WorkflowRepository workflowRepository() {
         return new InMemoryWorkflowRepository();
     }

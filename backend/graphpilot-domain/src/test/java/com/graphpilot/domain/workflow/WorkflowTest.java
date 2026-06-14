@@ -16,9 +16,7 @@ class WorkflowTest {
 
     @Test
     void createsWorkflowWithValidValues() {
-        DagDefinition dag = new DagDefinition(
-                List.of(new TaskDefinition(TaskId.of("extract"), "Extract data")),
-                List.of());
+        DagDefinition dag = dag();
 
         Workflow workflow = Workflow.create(
                 WorkflowId.of("workflow-1"),
@@ -50,9 +48,7 @@ class WorkflowTest {
 
     @Test
     void rejectsMissingRequiredFields() {
-        DagDefinition dag = new DagDefinition(
-                List.of(new TaskDefinition(TaskId.of("extract"), "Extract data")),
-                List.of());
+        DagDefinition dag = dag();
 
         assertThrows(
                 NullPointerException.class,
@@ -74,5 +70,103 @@ class WorkflowTest {
                         WorkflowName.of("Daily ETL"),
                         dag,
                         null));
+    }
+
+    @Test
+    void createsWorkflowInDraftStatusByDefault() {
+        Workflow workflow = workflow();
+
+        assertEquals(WorkflowStatus.DRAFT, workflow.status());
+    }
+
+    @Test
+    void transitionsFromDraftToActive() {
+        Workflow workflow = workflow();
+
+        Workflow activatedWorkflow = workflow.activate();
+
+        assertEquals(WorkflowStatus.ACTIVE, activatedWorkflow.status());
+        assertEquals(WorkflowStatus.DRAFT, workflow.status());
+    }
+
+    @Test
+    void transitionsFromActiveToPausedAndBackToActive() {
+        Workflow activeWorkflow = workflow().activate();
+
+        Workflow pausedWorkflow = activeWorkflow.pause();
+        Workflow resumedWorkflow = pausedWorkflow.resume();
+
+        assertEquals(WorkflowStatus.PAUSED, pausedWorkflow.status());
+        assertEquals(WorkflowStatus.ACTIVE, resumedWorkflow.status());
+        assertEquals(WorkflowStatus.ACTIVE, activeWorkflow.status());
+    }
+
+    @Test
+    void archivesActiveAndPausedWorkflows() {
+        Workflow archivedFromActive = workflow().activate().archive();
+        Workflow archivedFromPaused = workflow().activate().pause().archive();
+
+        assertEquals(WorkflowStatus.ARCHIVED, archivedFromActive.status());
+        assertEquals(WorkflowStatus.ARCHIVED, archivedFromPaused.status());
+    }
+
+    @Test
+    void rejectsInvalidLifecycleTransitions() {
+        Workflow draftWorkflow = workflow();
+        Workflow activeWorkflow = draftWorkflow.activate();
+        Workflow pausedWorkflow = activeWorkflow.pause();
+        Workflow archivedWorkflow = activeWorkflow.archive();
+
+        assertThrows(WorkflowLifecycleException.class, draftWorkflow::pause);
+        assertThrows(WorkflowLifecycleException.class, draftWorkflow::resume);
+        assertThrows(WorkflowLifecycleException.class, draftWorkflow::archive);
+        assertThrows(WorkflowLifecycleException.class, activeWorkflow::activate);
+        assertThrows(WorkflowLifecycleException.class, pausedWorkflow::pause);
+        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::activate);
+        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::pause);
+        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::resume);
+        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::archive);
+    }
+
+    @Test
+    void restoresWorkflowWithPersistedStatus() {
+        DagDefinition dag = dag();
+
+        Workflow workflow = Workflow.restore(
+                WorkflowId.of("workflow-1"),
+                WorkflowName.of("Daily ETL"),
+                dag,
+                WorkflowStatus.PAUSED,
+                CREATED_AT);
+
+        assertEquals(WorkflowStatus.PAUSED, workflow.status());
+        assertEquals(dag, workflow.dag());
+        assertEquals(CREATED_AT, workflow.createdAt());
+    }
+
+    @Test
+    void rejectsMissingWorkflowStatus() {
+        assertThrows(
+                NullPointerException.class,
+                () -> Workflow.restore(
+                        WorkflowId.of("workflow-1"),
+                        WorkflowName.of("Daily ETL"),
+                        dag(),
+                        null,
+                        CREATED_AT));
+    }
+
+    private static Workflow workflow() {
+        return Workflow.create(
+                WorkflowId.of("workflow-1"),
+                WorkflowName.of("Daily ETL"),
+                dag(),
+                CREATED_AT);
+    }
+
+    private static DagDefinition dag() {
+        return new DagDefinition(
+                List.of(new TaskDefinition(TaskId.of("extract"), "Extract data")),
+                List.of());
     }
 }

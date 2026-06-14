@@ -37,7 +37,7 @@ public record Workflow(
     }
 
     public Workflow activate() {
-        if (status == WorkflowStatus.DRAFT || status == WorkflowStatus.PAUSED) {
+        if (status == WorkflowStatus.DRAFT) {
             return withStatus(WorkflowStatus.ACTIVE);
         }
         throw invalidTransition("activate");

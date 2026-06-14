@@ -96,11 +96,9 @@ class WorkflowTest {
 
         Workflow pausedWorkflow = activeWorkflow.pause();
         Workflow resumedWorkflow = pausedWorkflow.resume();
-        Workflow activatedWorkflow = pausedWorkflow.activate();
 
         assertEquals(WorkflowStatus.PAUSED, pausedWorkflow.status());
         assertEquals(WorkflowStatus.ACTIVE, resumedWorkflow.status());
-        assertEquals(WorkflowStatus.ACTIVE, activatedWorkflow.status());
         assertEquals(WorkflowStatus.ACTIVE, activeWorkflow.status());
     }
 
@@ -138,6 +136,9 @@ class WorkflowTest {
         assertInvalidTransition(
                 pausedWorkflow::pause,
                 "Cannot pause workflow from status PAUSED");
+        assertInvalidTransition(
+                pausedWorkflow::activate,
+                "Cannot activate workflow from status PAUSED");
         assertInvalidTransition(
                 archivedWorkflow::activate,
                 "Cannot activate workflow from status ARCHIVED");

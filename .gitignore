@@ -7,6 +7,9 @@
 .DS_Store
 Thumbs.db
 
+# git worktree
+.claude/worktrees/
+
 # Java / Maven
 backend/**/target/
 *.class

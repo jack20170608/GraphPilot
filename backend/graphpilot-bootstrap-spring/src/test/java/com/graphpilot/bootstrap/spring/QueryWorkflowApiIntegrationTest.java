@@ -45,6 +45,7 @@ class QueryWorkflowApiIntegrationTest {
         assertThat(queryResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(queryResponse.getBody()).containsEntry("id", workflowId);
         assertThat(queryResponse.getBody()).containsEntry("name", "Daily ETL");
+        assertThat(queryResponse.getBody()).containsEntry("status", "DRAFT");
         assertThat(queryResponse.getBody()).containsKey("createdAt");
         assertThat(queryResponse.getBody().get("tasks")).asList().hasSize(2);
         assertThat(queryResponse.getBody().get("edges")).asList().hasSize(1);
@@ -96,6 +97,7 @@ class QueryWorkflowApiIntegrationTest {
                 .singleElement()
                 .satisfies(workflow -> {
                     assertThat(workflow).containsEntry("name", "List API Workflow A");
+                    assertThat(workflow).containsEntry("status", "DRAFT");
                     assertThat(workflow).containsKey("createdAt");
                     assertThat(workflow.get("tasks")).asList().hasSize(1);
                     assertThat(workflow.get("edges")).asList().isEmpty();

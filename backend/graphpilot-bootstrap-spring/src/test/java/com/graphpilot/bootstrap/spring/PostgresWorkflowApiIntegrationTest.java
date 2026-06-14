@@ -61,6 +61,11 @@ class PostgresWorkflowApiIntegrationTest {
         assertThat(createResponse.getBody()).containsKey("id");
         String workflowId = createResponse.getBody().get("id").toString();
 
+        ResponseEntity<Map<String, Object>> activateResponse = activateWorkflow(workflowId);
+
+        assertThat(activateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertWorkflow(activateResponse.getBody(), workflowId);
+
         ResponseEntity<Map<String, Object>> getResponse = getWorkflow(workflowId);
         ResponseEntity<List<Map<String, Object>>> listResponse = listWorkflows();
 
@@ -90,6 +95,14 @@ class PostgresWorkflowApiIntegrationTest {
                 new ParameterizedTypeReference<>() {});
     }
 
+    private ResponseEntity<Map<String, Object>> activateWorkflow(String workflowId) {
+        return restTemplate.exchange(
+                "/api/workflows/" + workflowId + "/activate",
+                HttpMethod.POST,
+                new HttpEntity<>(null),
+                new ParameterizedTypeReference<>() {});
+    }
+
     private ResponseEntity<List<Map<String, Object>>> listWorkflows() {
         return restTemplate.exchange(
                 "/api/workflows",
@@ -111,6 +124,7 @@ class PostgresWorkflowApiIntegrationTest {
 
     private static void assertWorkflow(Map<String, Object> workflow) {
         assertThat(workflow).containsEntry("name", "Postgres ETL");
+        assertThat(workflow).containsEntry("status", "ACTIVE");
         assertThat(workflow).containsKey("createdAt");
         List<?> tasks = (List<?>) workflow.get("tasks");
         assertThat(tasks).hasSize(3);

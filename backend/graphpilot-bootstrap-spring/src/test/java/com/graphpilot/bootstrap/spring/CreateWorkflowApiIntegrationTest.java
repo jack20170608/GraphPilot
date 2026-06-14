@@ -45,6 +45,15 @@ class CreateWorkflowApiIntegrationTest {
         assertThat(response.getHeaders().getLocation()).isNotNull();
         assertThat(response.getHeaders().getLocation().toString())
                 .contains(response.getBody().get("id").toString());
+
+        ResponseEntity<Map<String, Object>> getResponse = restTemplate.exchange(
+                response.getHeaders().getLocation(),
+                HttpMethod.GET,
+                new HttpEntity<>(null),
+                new ParameterizedTypeReference<>() {});
+
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getResponse.getBody()).containsEntry("status", "DRAFT");
     }
 
     @Test

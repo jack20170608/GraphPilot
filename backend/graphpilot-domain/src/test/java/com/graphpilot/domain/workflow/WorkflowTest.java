@@ -9,6 +9,7 @@ import com.graphpilot.domain.dag.TaskId;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 class WorkflowTest {
 
@@ -95,9 +96,11 @@ class WorkflowTest {
 
         Workflow pausedWorkflow = activeWorkflow.pause();
         Workflow resumedWorkflow = pausedWorkflow.resume();
+        Workflow activatedWorkflow = pausedWorkflow.activate();
 
         assertEquals(WorkflowStatus.PAUSED, pausedWorkflow.status());
         assertEquals(WorkflowStatus.ACTIVE, resumedWorkflow.status());
+        assertEquals(WorkflowStatus.ACTIVE, activatedWorkflow.status());
         assertEquals(WorkflowStatus.ACTIVE, activeWorkflow.status());
     }
 
@@ -117,15 +120,36 @@ class WorkflowTest {
         Workflow pausedWorkflow = activeWorkflow.pause();
         Workflow archivedWorkflow = activeWorkflow.archive();
 
-        assertThrows(WorkflowLifecycleException.class, draftWorkflow::pause);
-        assertThrows(WorkflowLifecycleException.class, draftWorkflow::resume);
-        assertThrows(WorkflowLifecycleException.class, draftWorkflow::archive);
-        assertThrows(WorkflowLifecycleException.class, activeWorkflow::activate);
-        assertThrows(WorkflowLifecycleException.class, pausedWorkflow::pause);
-        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::activate);
-        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::pause);
-        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::resume);
-        assertThrows(WorkflowLifecycleException.class, archivedWorkflow::archive);
+        assertInvalidTransition(
+                draftWorkflow::pause,
+                "Cannot pause workflow from status DRAFT");
+        assertInvalidTransition(
+                draftWorkflow::resume,
+                "Cannot resume workflow from status DRAFT");
+        assertInvalidTransition(
+                draftWorkflow::archive,
+                "Cannot archive workflow from status DRAFT");
+        assertInvalidTransition(
+                activeWorkflow::activate,
+                "Cannot activate workflow from status ACTIVE");
+        assertInvalidTransition(
+                activeWorkflow::resume,
+                "Cannot resume workflow from status ACTIVE");
+        assertInvalidTransition(
+                pausedWorkflow::pause,
+                "Cannot pause workflow from status PAUSED");
+        assertInvalidTransition(
+                archivedWorkflow::activate,
+                "Cannot activate workflow from status ARCHIVED");
+        assertInvalidTransition(
+                archivedWorkflow::pause,
+                "Cannot pause workflow from status ARCHIVED");
+        assertInvalidTransition(
+                archivedWorkflow::resume,
+                "Cannot resume workflow from status ARCHIVED");
+        assertInvalidTransition(
+                archivedWorkflow::archive,
+                "Cannot archive workflow from status ARCHIVED");
     }
 
     @Test
@@ -154,6 +178,14 @@ class WorkflowTest {
                         dag(),
                         null,
                         CREATED_AT));
+    }
+
+    private static void assertInvalidTransition(Executable transition, String expectedMessage) {
+        WorkflowLifecycleException exception = assertThrows(
+                WorkflowLifecycleException.class,
+                transition);
+
+        assertEquals(expectedMessage, exception.getMessage());
     }
 
     private static Workflow workflow() {

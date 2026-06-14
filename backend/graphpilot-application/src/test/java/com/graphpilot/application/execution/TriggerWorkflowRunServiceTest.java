@@ -3,6 +3,7 @@ package com.graphpilot.application.execution;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.graphpilot.application.execution.port.out.EventPublisherPort;
 import com.graphpilot.application.execution.port.out.TaskRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
@@ -43,6 +44,7 @@ class TriggerWorkflowRunServiceTest {
     private QueueWorkflowRunIdGenerator workflowRunIdGenerator;
     private QueueTaskRunIdGenerator taskRunIdGenerator;
     private FixedClock clock;
+    private NoOpEventPublisher eventPublisher;
     private TriggerWorkflowRunService service;
 
     @BeforeEach
@@ -55,12 +57,14 @@ class TriggerWorkflowRunServiceTest {
                 TaskRunId.of("task-run-2"),
                 TaskRunId.of("task-run-3"));
         clock = new FixedClock(NOW);
+        eventPublisher = new NoOpEventPublisher();
         service = new TriggerWorkflowRunService(
                 workflowRepository,
                 workflowRunRepository,
                 workflowRunIdGenerator,
                 taskRunIdGenerator,
-                clock);
+                clock,
+                eventPublisher);
     }
 
     @Test
@@ -244,6 +248,14 @@ class TriggerWorkflowRunServiceTest {
         public Instant now() {
             callCount++;
             return now;
+        }
+    }
+
+    private static final class NoOpEventPublisher implements EventPublisherPort {
+
+        @Override
+        public void publish(com.graphpilot.domain.execution.WorkflowRunCreatedEvent event) {
+            // no-op for testing
         }
     }
 }

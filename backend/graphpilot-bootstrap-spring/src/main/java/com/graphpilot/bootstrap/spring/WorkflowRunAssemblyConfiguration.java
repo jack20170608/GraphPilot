@@ -3,8 +3,10 @@ package com.graphpilot.bootstrap.spring;
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRunRepository;
 import com.graphpilot.adapter.persistence.memory.UuidTaskRunIdGenerator;
 import com.graphpilot.adapter.persistence.memory.UuidWorkflowRunIdGenerator;
+import com.graphpilot.adapter.worker.spring.config.SpringEventPublisher;
 import com.graphpilot.application.execution.port.in.QueryWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.in.TriggerWorkflowRunUseCase;
+import com.graphpilot.application.execution.port.out.EventPublisherPort;
 import com.graphpilot.application.execution.port.out.TaskRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
@@ -36,18 +38,25 @@ class WorkflowRunAssemblyConfiguration {
     }
 
     @Bean
+    EventPublisherPort eventPublisher(SpringEventPublisher springEventPublisher) {
+        return springEventPublisher;
+    }
+
+    @Bean
     TriggerWorkflowRunUseCase triggerWorkflowRunUseCase(
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
             WorkflowRunIdGeneratorPort workflowRunIdGenerator,
             TaskRunIdGeneratorPort taskRunIdGenerator,
-            ClockPort clock) {
+            ClockPort clock,
+            EventPublisherPort eventPublisher) {
         TriggerWorkflowRunUseCase delegate = new TriggerWorkflowRunService(
                 workflowRepository,
                 workflowRunRepository,
                 workflowRunIdGenerator,
                 taskRunIdGenerator,
-                clock);
+                clock,
+                eventPublisher);
         return new TransactionalTriggerWorkflowRunUseCase(delegate);
     }
 

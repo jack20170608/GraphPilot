@@ -90,7 +90,7 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
     }
 
     private static WorkflowRunRow toWorkflowRunRow(WorkflowRun workflowRun) {
-        return new WorkflowRunRow(
+        return WorkflowRunRow.of(
                 workflowRun.id().value(),
                 workflowRun.workflowId().value(),
                 workflowRun.status().name(),
@@ -98,7 +98,7 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
     }
 
     private static TaskRunRow toTaskRunRow(TaskRun taskRun) {
-        return new TaskRunRow(
+        return TaskRunRow.of(
                 taskRun.id().value(),
                 taskRun.workflowRunId().value(),
                 taskRun.taskId().value(),

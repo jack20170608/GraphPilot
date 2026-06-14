@@ -8,8 +8,14 @@ public record TaskRunRow(
         String workflowRunId,
         String taskId,
         String taskName,
+        String taskType,
         String status,
         int position,
+        int retryCount,
+        int maxRetries,
+        String errorMessage,
+        Instant startedAt,
+        Instant finishedAt,
         Instant createdAt) {
 
     public TaskRunRow {
@@ -19,5 +25,17 @@ public record TaskRunRow(
         Objects.requireNonNull(taskName, "taskName must not be null");
         Objects.requireNonNull(status, "status must not be null");
         Objects.requireNonNull(createdAt, "createdAt must not be null");
+        taskType = (taskType == null || taskType.isBlank()) ? "mock" : taskType;
+    }
+
+    /**
+     * Backward-compatible constructor (without new fields).
+     */
+    public static TaskRunRow of(
+            String id, String workflowRunId, String taskId, String taskName,
+            String status, int position, Instant createdAt) {
+        return new TaskRunRow(
+                id, workflowRunId, taskId, taskName, "mock",
+                status, position, 0, 3, null, null, null, createdAt);
     }
 }

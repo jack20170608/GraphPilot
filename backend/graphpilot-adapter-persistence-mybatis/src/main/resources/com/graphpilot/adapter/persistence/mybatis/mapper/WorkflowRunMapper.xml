@@ -4,12 +4,15 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.graphpilot.adapter.persistence.mybatis.mapper.WorkflowRunMapper">
 
+    <!-- Backward-compatible result maps (without new fields) -->
     <resultMap id="WorkflowRunRowResultMap" type="com.graphpilot.adapter.persistence.mybatis.row.WorkflowRunRow">
         <constructor>
             <arg column="id" javaType="java.lang.String" />
             <arg column="workflow_id" javaType="java.lang.String" />
             <arg column="status" javaType="java.lang.String" />
             <arg column="triggered_at" javaType="java.time.Instant" />
+            <arg column="started_at" javaType="java.time.Instant" />
+            <arg column="finished_at" javaType="java.time.Instant" />
         </constructor>
     </resultMap>
 
@@ -19,33 +22,69 @@
             <arg column="workflow_run_id" javaType="java.lang.String" />
             <arg column="task_id" javaType="java.lang.String" />
             <arg column="task_name" javaType="java.lang.String" />
+            <arg column="task_type" javaType="java.lang.String" />
             <arg column="status" javaType="java.lang.String" />
             <arg column="position" javaType="int" />
+            <arg column="retry_count" javaType="int" />
+            <arg column="max_retries" javaType="int" />
+            <arg column="error_message" javaType="java.lang.String" />
+            <arg column="started_at" javaType="java.time.Instant" />
+            <arg column="finished_at" javaType="java.time.Instant" />
+            <arg column="created_at" javaType="java.time.Instant" />
+        </constructor>
+    </resultMap>
+
+    <!-- Fallback result maps for legacy columns -->
+    <resultMap id="WorkflowRunRowResultMapLegacy" type="com.graphpilot.adapter.persistence.mybatis.row.WorkflowRunRow">
+        <constructor>
+            <arg column="id" javaType="java.lang.String" />
+            <arg column="workflow_id" javaType="java.lang.String" />
+            <arg column="status" javaType="java.lang.String" />
+            <arg column="triggered_at" javaType="java.time.Instant" />
+            <arg column="started_at" javaType="java.time.Instant" />
+            <arg column="finished_at" javaType="java.time.Instant" />
+        </constructor>
+    </resultMap>
+
+    <resultMap id="TaskRunRowResultMapLegacy" type="com.graphpilot.adapter.persistence.mybatis.row.TaskRunRow">
+        <constructor>
+            <arg column="id" javaType="java.lang.String" />
+            <arg column="workflow_run_id" javaType="java.lang.String" />
+            <arg column="task_id" javaType="java.lang.String" />
+            <arg column="task_name" javaType="java.lang.String" />
+            <arg column="task_type" javaType="java.lang.String" />
+            <arg column="status" javaType="java.lang.String" />
+            <arg column="position" javaType="int" />
+            <arg column="retry_count" javaType="int" />
+            <arg column="max_retries" javaType="int" />
+            <arg column="error_message" javaType="java.lang.String" />
+            <arg column="started_at" javaType="java.time.Instant" />
+            <arg column="finished_at" javaType="java.time.Instant" />
             <arg column="created_at" javaType="java.time.Instant" />
         </constructor>
     </resultMap>
 
     <insert id="insertWorkflowRun" parameterType="com.graphpilot.adapter.persistence.mybatis.row.WorkflowRunRow">
-        insert into workflow_runs (id, workflow_id, status, triggered_at)
-        values (#{id}, #{workflowId}, #{status}, #{triggeredAt})
+        insert into workflow_runs (id, workflow_id, status, triggered_at, started_at, finished_at)
+        values (#{id}, #{workflowId}, #{status}, #{triggeredAt}, #{startedAt}, #{finishedAt})
     </insert>
 
     <insert id="insertTaskRuns">
-        insert into task_runs (id, workflow_run_id, task_id, task_name, status, position, created_at)
+        insert into task_runs (id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, started_at, finished_at, created_at)
         values
         <foreach collection="taskRuns" item="taskRun" separator=",">
-            (#{taskRun.id}, #{taskRun.workflowRunId}, #{taskRun.taskId}, #{taskRun.taskName}, #{taskRun.status}, #{taskRun.position}, #{taskRun.createdAt})
+            (#{taskRun.id}, #{taskRun.workflowRunId}, #{taskRun.taskId}, #{taskRun.taskName}, #{taskRun.taskType}, #{taskRun.status}, #{taskRun.position}, #{taskRun.retryCount}, #{taskRun.maxRetries}, #{taskRun.errorMessage}, #{taskRun.startedAt}, #{taskRun.finishedAt}, #{taskRun.createdAt})
         </foreach>
     </insert>
 
     <select id="findWorkflowRunById" resultMap="WorkflowRunRowResultMap">
-        select id, workflow_id, status, triggered_at
+        select id, workflow_id, status, triggered_at, started_at, finished_at
         from workflow_runs
         where id = #{workflowRunId}
     </select>
 
     <select id="findWorkflowRunsByWorkflowId" resultMap="WorkflowRunRowResultMap">
-        select id, workflow_id, status, triggered_at
+        select id, workflow_id, status, triggered_at, started_at, finished_at
         from workflow_runs
         where workflow_id = #{workflowId}
         order by triggered_at, id
@@ -53,9 +92,35 @@
     </select>
 
     <select id="findTaskRunsByRunId" resultMap="TaskRunRowResultMap">
-        select id, workflow_run_id, task_id, task_name, status, position, created_at
+        select id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, started_at, finished_at, created_at
         from task_runs
         where workflow_run_id = #{workflowRunId}
         order by position, task_id
     </select>
+
+    <!-- Find pending tasks that can be executed (dependencies satisfied via position order) -->
+    <select id="findPendingTaskRunsByRunId" resultMap="TaskRunRowResultMap">
+        select id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, started_at, finished_at, created_at
+        from task_runs
+        where workflow_run_id = #{workflowRunId} and status = 'PENDING'
+        order by position, task_id
+    </select>
+
+    <update id="updateTaskRunStatus">
+        update task_runs
+        set status = #{status},
+            error_message = #{errorMessage},
+            started_at = #{startedAt},
+            finished_at = #{finishedAt},
+            retry_count = #{retryCount}
+        where id = #{taskRunId}
+    </update>
+
+    <update id="updateWorkflowRunStatus">
+        update workflow_runs
+        set status = #{status},
+            started_at = #{startedAt},
+            finished_at = #{finishedAt}
+        where id = #{workflowRunId}
+    </update>
 </mapper>

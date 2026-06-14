@@ -20,4 +20,18 @@ public interface WorkflowRunMapper {
             @Param("limit") int limit);
 
     List<TaskRunRow> findTaskRunsByRunId(@Param("workflowRunId") String workflowRunId);
+
+    List<TaskRunRow> findPendingTaskRunsByRunId(@Param("workflowRunId") String workflowRunId);
+
+    void updateTaskRunStatus(@Param("taskRunId") String taskRunId,
+            @Param("status") String status,
+            @Param("errorMessage") String errorMessage,
+            @Param("startedAt") java.time.Instant startedAt,
+            @Param("finishedAt") java.time.Instant finishedAt,
+            @Param("retryCount") int retryCount);
+
+    void updateWorkflowRunStatus(@Param("workflowRunId") String workflowRunId,
+            @Param("status") String status,
+            @Param("startedAt") java.time.Instant startedAt,
+            @Param("finishedAt") java.time.Instant finishedAt);
 }

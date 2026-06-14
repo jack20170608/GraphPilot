@@ -106,5 +106,22 @@ class MyBatisWorkflowRunRepositoryTest {
         public List<TaskRunRow> findTaskRunsByRunId(String workflowRunId) {
             return List.of();
         }
+
+        @Override
+        public List<TaskRunRow> findPendingTaskRunsByRunId(String workflowRunId) {
+            return List.of();
+        }
+
+        @Override
+        public void updateTaskRunStatus(String taskRunId, String status, String errorMessage,
+                Instant startedAt, Instant finishedAt, int retryCount) {
+            // no-op for test
+        }
+
+        @Override
+        public void updateWorkflowRunStatus(String workflowRunId, String status,
+                Instant startedAt, Instant finishedAt) {
+            // no-op for test
+        }
     }
 }

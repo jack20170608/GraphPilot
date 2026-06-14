@@ -10,7 +10,13 @@ public record WorkflowRun(
         WorkflowRunId id,
         WorkflowId workflowId,
         WorkflowRunStatus status,
-        Instant triggeredAt) {
+        Instant triggeredAt,
+        Instant startedAt,
+        Instant finishedAt) {
+
+    public WorkflowRun(WorkflowRunId id, WorkflowId workflowId, WorkflowRunStatus status, Instant triggeredAt) {
+        this(id, workflowId, status, triggeredAt, null, null);
+    }
 
     public WorkflowRun {
         Objects.requireNonNull(id, "id must not be null");
@@ -35,6 +41,18 @@ public record WorkflowRun(
             WorkflowId workflowId,
             WorkflowRunStatus status,
             Instant triggeredAt) {
-        return new WorkflowRun(id, workflowId, status, triggeredAt);
+        return new WorkflowRun(id, workflowId, status, triggeredAt, null, null);
+    }
+
+    public WorkflowRun withStatus(WorkflowRunStatus newStatus) {
+        return new WorkflowRun(id, workflowId, newStatus, triggeredAt, startedAt, finishedAt);
+    }
+
+    public WorkflowRun withStartedAt(Instant startedAt) {
+        return new WorkflowRun(id, workflowId, status, triggeredAt, startedAt, finishedAt);
+    }
+
+    public WorkflowRun withFinishedAt(Instant finishedAt) {
+        return new WorkflowRun(id, workflowId, status, triggeredAt, startedAt, finishedAt);
     }
 }

@@ -1,5 +1,6 @@
 package com.graphpilot.adapter.web.spring.workflow;
 
+import com.graphpilot.application.workflow.port.in.ChangeWorkflowLifecycleUseCase;
 import com.graphpilot.application.workflow.port.in.CreateWorkflowUseCase;
 import com.graphpilot.application.workflow.port.in.QueryWorkflowUseCase;
 import com.graphpilot.domain.workflow.WorkflowId;
@@ -26,16 +27,21 @@ class WorkflowController {
 
     private final CreateWorkflowUseCase createWorkflowUseCase;
     private final QueryWorkflowUseCase queryWorkflowUseCase;
+    private final ChangeWorkflowLifecycleUseCase changeWorkflowLifecycleUseCase;
 
     WorkflowController(
             CreateWorkflowUseCase createWorkflowUseCase,
-            QueryWorkflowUseCase queryWorkflowUseCase) {
+            QueryWorkflowUseCase queryWorkflowUseCase,
+            ChangeWorkflowLifecycleUseCase changeWorkflowLifecycleUseCase) {
         this.createWorkflowUseCase = Objects.requireNonNull(
                 createWorkflowUseCase,
                 "createWorkflowUseCase must not be null");
         this.queryWorkflowUseCase = Objects.requireNonNull(
                 queryWorkflowUseCase,
                 "queryWorkflowUseCase must not be null");
+        this.changeWorkflowLifecycleUseCase = Objects.requireNonNull(
+                changeWorkflowLifecycleUseCase,
+                "changeWorkflowLifecycleUseCase must not be null");
     }
 
     @PostMapping
@@ -68,7 +74,35 @@ class WorkflowController {
 
     @GetMapping("/{id}")
     ResponseEntity<WorkflowResponse> getById(@PathVariable("id") String id) {
-        WorkflowId workflowId = WorkflowId.of(UriUtils.decode(id, StandardCharsets.UTF_8));
+        WorkflowId workflowId = workflowIdFrom(id);
         return ResponseEntity.ok(WorkflowResponse.from(queryWorkflowUseCase.findById(workflowId)));
+    }
+
+    @PostMapping("/{id}/activate")
+    ResponseEntity<WorkflowResponse> activate(@PathVariable("id") String id) {
+        return ResponseEntity.ok(WorkflowResponse.from(
+                changeWorkflowLifecycleUseCase.activate(workflowIdFrom(id))));
+    }
+
+    @PostMapping("/{id}/pause")
+    ResponseEntity<WorkflowResponse> pause(@PathVariable("id") String id) {
+        return ResponseEntity.ok(WorkflowResponse.from(
+                changeWorkflowLifecycleUseCase.pause(workflowIdFrom(id))));
+    }
+
+    @PostMapping("/{id}/resume")
+    ResponseEntity<WorkflowResponse> resume(@PathVariable("id") String id) {
+        return ResponseEntity.ok(WorkflowResponse.from(
+                changeWorkflowLifecycleUseCase.resume(workflowIdFrom(id))));
+    }
+
+    @PostMapping("/{id}/archive")
+    ResponseEntity<WorkflowResponse> archive(@PathVariable("id") String id) {
+        return ResponseEntity.ok(WorkflowResponse.from(
+                changeWorkflowLifecycleUseCase.archive(workflowIdFrom(id))));
+    }
+
+    private static WorkflowId workflowIdFrom(String id) {
+        return WorkflowId.of(UriUtils.decode(id, StandardCharsets.UTF_8));
     }
 }

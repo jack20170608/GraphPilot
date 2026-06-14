@@ -9,6 +9,7 @@ import java.util.List;
 record WorkflowResponse(
         String id,
         String name,
+        String status,
         List<TaskResponse> tasks,
         List<EdgeResponse> edges,
         Instant createdAt) {
@@ -17,6 +18,7 @@ record WorkflowResponse(
         return new WorkflowResponse(
                 workflow.id().value(),
                 workflow.name().value(),
+                workflow.status().name(),
                 workflow.dag().tasks().stream()
                         .map(TaskResponse::from)
                         .toList(),

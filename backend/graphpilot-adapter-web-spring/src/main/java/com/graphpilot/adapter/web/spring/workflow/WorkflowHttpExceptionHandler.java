@@ -2,6 +2,7 @@ package com.graphpilot.adapter.web.spring.workflow;
 
 import com.graphpilot.application.workflow.WorkflowNotFoundException;
 import com.graphpilot.domain.dag.DagValidationException;
+import com.graphpilot.domain.workflow.WorkflowLifecycleException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -32,6 +33,14 @@ class WorkflowHttpExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
         problemDetail.setTitle("Workflow not found");
         problemDetail.setDetail("Workflow was not found");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(WorkflowLifecycleException.class)
+    ProblemDetail handleInvalidWorkflowLifecycleTransition(WorkflowLifecycleException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problemDetail.setTitle("Invalid workflow lifecycle transition");
+        problemDetail.setDetail(exception.getMessage());
         return problemDetail;
     }
 

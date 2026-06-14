@@ -1,6 +1,7 @@
 package com.graphpilot.adapter.persistence.mybatis;
 
 import com.graphpilot.adapter.persistence.mybatis.mapper.WorkflowMapper;
+import com.graphpilot.adapter.persistence.mybatis.mapper.WorkflowRunMapper;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
@@ -15,5 +16,11 @@ public class WorkflowPersistenceConfiguration {
     @Bean
     WorkflowRepository workflowRepository(WorkflowMapper workflowMapper) {
         return new MyBatisWorkflowRepository(workflowMapper);
+    }
+
+    @Bean
+    com.graphpilot.application.execution.port.out.WorkflowRunRepository workflowRunRepository(
+            WorkflowRunMapper workflowRunMapper) {
+        return new MyBatisWorkflowRunRepository(workflowRunMapper);
     }
 }

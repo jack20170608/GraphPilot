@@ -119,7 +119,8 @@ class MyBatisWorkflowRepositoryTest {
                 "Workflow A",
                 Instant.parse("2026-06-13T00:00:00Z"),
                 List.of(task("extract", "Extract data"), task("transform", "Transform data"), task("load", "Load data")),
-                List.of(edge("extract", "transform")));
+                List.of(edge("extract", "transform")))
+                .activate();
         Workflow workflowC = workflow("workflow-c", "Workflow C", Instant.parse("2026-06-13T00:01:00Z"));
 
         repository.save(workflowC);
@@ -134,6 +135,7 @@ class MyBatisWorkflowRepositoryTest {
         assertThat(limitedWorkflows)
                 .extracting(workflow -> workflow.id().value())
                 .containsExactly("workflow-a", "workflow-b");
+        assertThat(limitedWorkflows.getFirst().status()).isEqualTo(WorkflowStatus.ACTIVE);
         assertThat(limitedWorkflows.getFirst().dag().tasks())
                 .extracting(task -> task.id().value())
                 .containsExactly("extract", "transform", "load");
@@ -204,6 +206,7 @@ class MyBatisWorkflowRepositoryTest {
     private static void assertWorkflowEquals(Workflow actual, Workflow expected) {
         assertThat(actual.id()).isEqualTo(expected.id());
         assertThat(actual.name()).isEqualTo(expected.name());
+        assertThat(actual.status()).isEqualTo(expected.status());
         assertThat(actual.createdAt()).isEqualTo(expected.createdAt());
         assertThat(actual.dag().tasks()).containsExactlyElementsOf(expected.dag().tasks());
         assertThat(actual.dag().edges()).containsExactlyElementsOf(expected.dag().edges());

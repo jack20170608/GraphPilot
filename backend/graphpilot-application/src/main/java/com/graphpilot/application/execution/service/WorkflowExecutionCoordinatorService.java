@@ -3,7 +3,6 @@ package com.graphpilot.application.execution.service;
 import com.graphpilot.application.execution.port.in.ExecuteWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.in.TaskHandler;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
-import com.graphpilot.application.execution.port.out.TaskRunRepository;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
@@ -11,7 +10,6 @@ import com.graphpilot.domain.dag.DagDefinition;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskRun;
-import com.graphpilot.domain.execution.TaskRunId;
 import com.graphpilot.domain.execution.TaskRunStatus;
 import com.graphpilot.domain.execution.TaskResult;
 import com.graphpilot.domain.execution.WorkflowRun;
@@ -19,7 +17,6 @@ import com.graphpilot.domain.execution.WorkflowRunId;
 import com.graphpilot.domain.execution.WorkflowRunStatus;
 import com.graphpilot.domain.workflow.Workflow;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,19 +32,16 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
 
     private final WorkflowRepository workflowRepository;
     private final WorkflowRunRepository workflowRunRepository;
-    private final TaskRunRepository taskRunRepository;
     private final TaskHandlerProvider taskHandlerProvider;
     private final ClockPort clock;
 
     public WorkflowExecutionCoordinatorService(
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
-            TaskRunRepository taskRunRepository,
             TaskHandlerProvider taskHandlerProvider,
             ClockPort clock) {
         this.workflowRepository = Objects.requireNonNull(workflowRepository, "workflowRepository must not be null");
-        this.workflowRunRepository = Objects.requireNonNull(workflowRunRepository, "workflowRunId must not be null");
-        this.taskRunRepository = Objects.requireNonNull(taskRunRepository, "taskRunRepository must not be null");
+        this.workflowRunRepository = Objects.requireNonNull(workflowRunRepository, "workflowRunRepository must not be null");
         this.taskHandlerProvider = Objects.requireNonNull(taskHandlerProvider, "taskHandlerProvider must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
@@ -83,9 +77,7 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         }
 
         // Get task runs
-        List<TaskRun> taskRuns = taskRunRepository.findByWorkflowRunId(workflowRunId);
-        Map<TaskId, TaskRun> taskRunsByTaskId = taskRuns.stream()
-                .collect(Collectors.toMap(TaskRun::taskId, Function.identity()));
+        List<TaskRun> taskRuns = workflowRunRepository.findTaskRunsByRunId(workflowRunId);
 
         // Find runnable tasks (dependencies satisfied)
         Set<TaskId> completedTaskIds = taskRuns.stream()
@@ -100,8 +92,9 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             executeTask(taskRun, taskDefsById.get(taskRun.taskId()), now);
         }
 
-        // Check if workflow is complete
-        checkWorkflowCompletion(workflowRunId, taskRuns);
+        // Check if workflow is complete (reload task runs after execution)
+        List<TaskRun> updatedTaskRuns = workflowRunRepository.findTaskRunsByRunId(workflowRunId);
+        checkWorkflowCompletion(workflowRunId, updatedTaskRuns);
     }
 
     private List<TaskRun> findRunnableTasks(
@@ -112,13 +105,11 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         return taskRuns.stream()
                 .filter(tr -> tr.status() == TaskRunStatus.PENDING)
                 .filter(tr -> {
-                    // Get edges where this task is the target (dependencies)
                     TaskDefinition taskDef = taskDefsById.get(tr.taskId());
                     if (taskDef == null) {
                         return false;
                     }
                     // For MVP: simple topological order by position
-                    // In advanced version, would check actual DAG edges
                     return true;
                 })
                 .sorted((a, b) -> Integer.compare(a.position(), b.position()))
@@ -130,13 +121,8 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
 
         // Mark as RUNNING
         Instant startedAt = taskRun.startedAt() != null ? taskRun.startedAt() : defaultStartedAt;
-        taskRunRepository.updateStatus(
-                taskRun.id(),
-                TaskRunStatus.RUNNING,
-                null,
-                startedAt,
-                null,
-                taskRun.retryCount());
+        workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(),
+                taskRun.withStatus(TaskRunStatus.RUNNING).withStartedAt(startedAt));
 
         TaskResult result;
         try {
@@ -154,12 +140,17 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         int newRetryCount = taskRun.retryCount();
 
         if (newStatus == TaskRunStatus.FAILED && taskRun.canRetry()) {
-            // Will retry - don't mark as failed yet
+            // Will retry
             newRetryCount = taskRun.retryCount() + 1;
             newStatus = TaskRunStatus.PENDING;
-            taskRunRepository.updateStatus(taskRun.id(), newStatus, null, null, null, newRetryCount);
+            TaskRun retryTaskRun = taskRun.withStatus(newStatus).withIncrementedRetry();
+            workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), retryTaskRun);
         } else {
-            taskRunRepository.updateStatus(taskRun.id(), newStatus, errorMessage, startedAt, now, newRetryCount);
+            TaskRun finishedTaskRun = taskRun.withStatus(newStatus)
+                    .withStartedAt(startedAt)
+                    .withFinishedAt(now)
+                    .withErrorMessage(errorMessage);
+            workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), finishedTaskRun);
         }
     }
 
@@ -170,8 +161,8 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
                            || tr.status() == TaskRunStatus.SKIPPED)
                 .count();
 
-        Instant now = clock.now();
         if (completed == taskRuns.size()) {
+            Instant now = clock.now();
             boolean allSucceeded = taskRuns.stream()
                     .allMatch(tr -> tr.status() == TaskRunStatus.SUCCEEDED);
             WorkflowRunStatus finalStatus = allSucceeded ?

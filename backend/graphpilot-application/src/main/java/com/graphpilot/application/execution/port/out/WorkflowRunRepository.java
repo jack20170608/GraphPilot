@@ -19,6 +19,14 @@ public interface WorkflowRunRepository {
     List<TaskRun> findTaskRunsByRunId(WorkflowRunId workflowRunId);
 
     /**
+     * Update a task run status with execution result.
+     * Default implementation throws UnsupportedOperationException.
+     */
+    default void updateTaskRunStatus(WorkflowRunId workflowRunId, TaskRun taskRun) {
+        throw new UnsupportedOperationException("updateTaskRunStatus not implemented");
+    }
+
+    /**
      * Update workflow run status and timestamps.
      * Default implementation throws UnsupportedOperationException.
      */

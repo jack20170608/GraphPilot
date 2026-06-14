@@ -81,6 +81,19 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
 
     @Override
     @Transactional
+    public void updateTaskRunStatus(WorkflowRunId workflowRunId, TaskRun taskRun) {
+        Objects.requireNonNull(taskRun, "taskRun must not be null");
+        workflowRunMapper.updateTaskRunStatus(
+                taskRun.id().value(),
+                taskRun.status().name(),
+                taskRun.errorMessage(),
+                taskRun.startedAt(),
+                taskRun.finishedAt(),
+                taskRun.retryCount());
+    }
+
+    @Override
+    @Transactional
     public void updateStatus(WorkflowRunId workflowRunId, WorkflowRunStatus status, java.time.Instant startedAt) {
         Objects.requireNonNull(workflowRunId, "workflowRunId must not be null");
         Objects.requireNonNull(status, "status must not be null");

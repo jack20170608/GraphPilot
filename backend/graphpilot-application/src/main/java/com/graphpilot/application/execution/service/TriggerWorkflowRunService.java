@@ -50,7 +50,7 @@ public final class TriggerWorkflowRunService implements TriggerWorkflowRunUseCas
     @Override
     public WorkflowRunId trigger(WorkflowId workflowId) {
         Objects.requireNonNull(workflowId, "workflowId must not be null");
-        Workflow workflow = workflowRepository.findById(workflowId)
+        Workflow workflow = workflowRepository.findByIdForRunTrigger(workflowId)
                 .orElseThrow(() -> new WorkflowNotFoundException(workflowId));
         Instant triggeredAt = clock.now();
         WorkflowRun workflowRun = WorkflowRun.create(

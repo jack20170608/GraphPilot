@@ -61,6 +61,15 @@ public class MyBatisWorkflowRepository implements WorkflowRepository {
     }
 
     @Override
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    public Optional<Workflow> findByIdForRunTrigger(WorkflowId workflowId) {
+        Objects.requireNonNull(workflowId, "workflowId must not be null");
+
+        return Optional.ofNullable(workflowMapper.findWorkflowByIdForUpdate(workflowId.value()))
+                .map(this::toWorkflow);
+    }
+
+    @Override
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public List<Workflow> findAll(int limit) {
         if (limit <= 0) {

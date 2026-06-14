@@ -22,6 +22,8 @@ public interface WorkflowMapper {
 
     WorkflowRow findWorkflowById(@Param("workflowId") String workflowId);
 
+    WorkflowRow findWorkflowByIdForUpdate(@Param("workflowId") String workflowId);
+
     List<WorkflowTaskRow> findTasksByWorkflowId(@Param("workflowId") String workflowId);
 
     List<WorkflowTaskRow> findTasksByWorkflowIds(@Param("workflowIds") List<String> workflowIds);

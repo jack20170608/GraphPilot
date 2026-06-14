@@ -72,6 +72,13 @@
         where id = #{workflowId}
     </select>
 
+    <select id="findWorkflowByIdForUpdate" resultMap="WorkflowRowResultMap">
+        select id, name, status, created_at
+        from workflows
+        where id = #{workflowId}
+        for update
+    </select>
+
     <select id="findTasksByWorkflowId" resultMap="WorkflowTaskRowResultMap">
         select workflow_id, task_id, name, position
         from workflow_tasks

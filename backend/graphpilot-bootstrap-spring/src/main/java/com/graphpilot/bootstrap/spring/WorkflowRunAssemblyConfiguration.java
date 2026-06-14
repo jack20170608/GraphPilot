@@ -42,12 +42,13 @@ class WorkflowRunAssemblyConfiguration {
             WorkflowRunIdGeneratorPort workflowRunIdGenerator,
             TaskRunIdGeneratorPort taskRunIdGenerator,
             ClockPort clock) {
-        return new TriggerWorkflowRunService(
+        TriggerWorkflowRunUseCase delegate = new TriggerWorkflowRunService(
                 workflowRepository,
                 workflowRunRepository,
                 workflowRunIdGenerator,
                 taskRunIdGenerator,
                 clock);
+        return new TransactionalTriggerWorkflowRunUseCase(delegate);
     }
 
     @Bean

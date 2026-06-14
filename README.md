@@ -69,13 +69,19 @@ bootstrap -> adapters -> application -> domain
 
 ## 当前状态
 
-后端已完成 Workflow 基础纵向切片，当前 Spring Web adapter 暴露以下 API：
+后端已完成 Workflow 基础纵向切片和 Workflow Run MVP。当前 Spring Web adapter 暴露以下 API：
 
 - `POST /api/workflows` 创建 Workflow。
 - `GET /api/workflows/{id}` 查询单个 Workflow。
 - `GET /api/workflows?limit=50` 按限制数量列出 Workflows。
+- `POST /api/workflows/{workflowId}/runs` 手动触发 ACTIVE Workflow 的一次运行，创建 `PENDING` run/task-run 元数据。
+- `GET /api/workflows/{workflowId}/runs?limit=50` 查询某个 Workflow 的运行列表。
+- `GET /api/workflow-runs/{runId}` 查询单个 Workflow Run。
+- `GET /api/workflow-runs/{runId}/tasks` 查询 Workflow Run 下的 Task Run 列表。
 
-默认 profile 使用 in-memory persistence，适合无数据库配置的本地开发和快速验证。启用 `postgres` profile 时，后端使用 PostgreSQL、Flyway 和 MyBatis 提供 Workflow create/get/list 持久化能力，并要求显式提供以下环境变量，不提供默认值：
+Workflow Run MVP 只覆盖手动触发和运行元数据查询；尚未实现 scheduler、worker 执行、重试、取消、超时、日志、输出或运行状态更新能力。
+
+默认 profile 使用 in-memory persistence，适合无数据库配置的本地开发和快速验证。启用 `postgres` profile 时，后端使用 PostgreSQL、Flyway 和 MyBatis 提供 Workflow 与 Workflow Run 元数据持久化能力，并要求显式提供以下环境变量，不提供默认值：
 
 - `GRAPHPILOT_POSTGRES_URL`
 - `GRAPHPILOT_POSTGRES_USER`

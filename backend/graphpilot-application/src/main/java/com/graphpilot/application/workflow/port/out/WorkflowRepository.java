@@ -11,5 +11,9 @@ public interface WorkflowRepository {
 
     Optional<Workflow> findById(WorkflowId workflowId);
 
+    default Optional<Workflow> findByIdForRunTrigger(WorkflowId workflowId) {
+        return findById(workflowId);
+    }
+
     List<Workflow> findAll(int limit);
 }

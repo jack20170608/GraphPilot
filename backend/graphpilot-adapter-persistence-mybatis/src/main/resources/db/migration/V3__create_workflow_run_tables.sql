@@ -18,5 +18,4 @@ create table task_runs (
 );
 
 create index idx_workflow_runs_workflow_triggered_at_id on workflow_runs(workflow_id, triggered_at, id);
-create index idx_task_runs_workflow_run_position on task_runs(workflow_run_id, position);
 create index idx_task_runs_workflow_run_status on task_runs(workflow_run_id, status);

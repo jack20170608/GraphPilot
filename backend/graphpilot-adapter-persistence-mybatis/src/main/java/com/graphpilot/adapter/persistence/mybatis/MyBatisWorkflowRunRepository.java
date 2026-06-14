@@ -34,6 +34,8 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
         Objects.requireNonNull(workflowRun, "workflowRun must not be null");
         Objects.requireNonNull(taskRuns, "taskRuns must not be null");
 
+        validateTaskRunOwnership(workflowRun.id(), taskRuns);
+
         workflowRunMapper.insertWorkflowRun(toWorkflowRunRow(workflowRun));
         List<TaskRunRow> taskRunRows = taskRuns.stream()
                 .map(MyBatisWorkflowRunRepository::toTaskRunRow)
@@ -74,6 +76,17 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
         return workflowRunMapper.findTaskRunsByRunId(workflowRunId.value()).stream()
                 .map(MyBatisWorkflowRunRepository::toTaskRun)
                 .toList();
+    }
+
+    private static void validateTaskRunOwnership(WorkflowRunId workflowRunId, List<TaskRun> taskRuns) {
+        for (TaskRun taskRun : taskRuns) {
+            if (taskRun == null) {
+                throw new IllegalArgumentException("taskRun must not be null");
+            }
+            if (!taskRun.workflowRunId().equals(workflowRunId)) {
+                throw new IllegalArgumentException("Task run workflowRunId must match workflow run id");
+            }
+        }
     }
 
     private static WorkflowRunRow toWorkflowRunRow(WorkflowRun workflowRun) {

@@ -12,6 +12,7 @@ import com.graphpilot.domain.execution.WorkflowRun;
 import com.graphpilot.domain.execution.WorkflowRunId;
 import com.graphpilot.domain.execution.WorkflowRunStatus;
 import com.graphpilot.domain.workflow.WorkflowId;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -75,6 +76,30 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
 
         return workflowRunMapper.findTaskRunsByRunId(workflowRunId.value()).stream()
                 .map(MyBatisWorkflowRunRepository::toTaskRun)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateStatus(WorkflowRunId workflowRunId, WorkflowRunStatus status, java.time.Instant startedAt) {
+        Objects.requireNonNull(workflowRunId, "workflowRunId must not be null");
+        Objects.requireNonNull(status, "status must not be null");
+
+        Instant finishedAt = (status == WorkflowRunStatus.SUCCEEDED || status == WorkflowRunStatus.FAILED)
+                ? Instant.now() : null;
+        workflowRunMapper.updateWorkflowRunStatus(
+                workflowRunId.value(),
+                status.name(),
+                startedAt,
+                finishedAt);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkflowRun> findByStatus(WorkflowRunStatus status, int limit) {
+        // Simple implementation - in production would have a separate query
+        return findRunsByWorkflowId(WorkflowId.of(""), limit).stream()
+                .filter(wr -> wr.status() == status)
                 .toList();
     }
 

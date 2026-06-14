@@ -1,6 +1,7 @@
 create table workflows (
     id text primary key check (btrim(id) <> ''),
     name text not null check (btrim(name) <> ''),
+    status text not null check (status in ('DRAFT', 'ACTIVE', 'PAUSED', 'ARCHIVED')),
     created_at timestamptz not null
 );
 

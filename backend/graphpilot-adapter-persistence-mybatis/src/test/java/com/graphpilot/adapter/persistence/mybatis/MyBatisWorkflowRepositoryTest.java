@@ -11,6 +11,7 @@ import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.workflow.Workflow;
 import com.graphpilot.domain.workflow.WorkflowId;
 import com.graphpilot.domain.workflow.WorkflowName;
+import com.graphpilot.domain.workflow.WorkflowStatus;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,6 +75,35 @@ class MyBatisWorkflowRepositoryTest {
         assertThat(savedWorkflow).isEqualTo(workflow);
         assertThat(repository.findById(workflow.id()))
                 .hasValueSatisfying(found -> assertWorkflowEquals(found, workflow));
+    }
+
+    @Test
+    void saveThenFindByIdRestoresWorkflowStatus() {
+        Workflow workflow = workflow(
+                "workflow-active",
+                "Active Workflow",
+                Instant.parse("2026-06-13T00:00:00Z"))
+                .activate();
+
+        repository.save(workflow);
+
+        assertThat(repository.findById(workflow.id()))
+                .hasValueSatisfying(found -> assertThat(found.status()).isEqualTo(WorkflowStatus.ACTIVE));
+    }
+
+    @Test
+    void saveUpdatesExistingWorkflowStatus() {
+        Workflow draftWorkflow = workflow(
+                "workflow-status-update",
+                "Status Update Workflow",
+                Instant.parse("2026-06-13T00:00:00Z"));
+        Workflow activeWorkflow = draftWorkflow.activate();
+
+        repository.save(draftWorkflow);
+        repository.save(activeWorkflow);
+
+        assertThat(repository.findById(activeWorkflow.id()))
+                .hasValueSatisfying(found -> assertThat(found.status()).isEqualTo(WorkflowStatus.ACTIVE));
     }
 
     @Test

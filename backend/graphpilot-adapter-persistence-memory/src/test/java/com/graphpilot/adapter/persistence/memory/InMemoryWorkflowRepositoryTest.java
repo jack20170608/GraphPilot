@@ -9,6 +9,7 @@ import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.workflow.Workflow;
 import com.graphpilot.domain.workflow.WorkflowId;
 import com.graphpilot.domain.workflow.WorkflowName;
+import com.graphpilot.domain.workflow.WorkflowStatus;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,16 @@ class InMemoryWorkflowRepositoryTest {
 
         assertThat(savedWorkflow).isEqualTo(workflow);
         assertThat(repository.findById(workflow.id())).contains(workflow);
+    }
+
+    @Test
+    void savesWorkflowStatus() {
+        Workflow workflow = workflow("workflow-active", "Active Workflow").activate();
+
+        repository.save(workflow);
+
+        assertThat(repository.findById(workflow.id()))
+                .hasValueSatisfying(found -> assertThat(found.status()).isEqualTo(WorkflowStatus.ACTIVE));
     }
 
     @Test

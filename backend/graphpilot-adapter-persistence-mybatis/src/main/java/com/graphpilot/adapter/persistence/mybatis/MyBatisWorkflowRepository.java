@@ -12,6 +12,7 @@ import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.workflow.Workflow;
 import com.graphpilot.domain.workflow.WorkflowId;
 import com.graphpilot.domain.workflow.WorkflowName;
+import com.graphpilot.domain.workflow.WorkflowStatus;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -91,6 +92,7 @@ public class MyBatisWorkflowRepository implements WorkflowRepository {
         return new WorkflowRow(
                 workflow.id().value(),
                 workflow.name().value(),
+                workflow.status().name(),
                 workflow.createdAt());
     }
 
@@ -139,10 +141,11 @@ public class MyBatisWorkflowRepository implements WorkflowRepository {
                 .map(this::toDagEdge)
                 .toList();
 
-        return Workflow.create(
+        return Workflow.restore(
                 WorkflowId.of(workflowRow.id()),
                 WorkflowName.of(workflowRow.name()),
                 new DagDefinition(tasks, edges),
+                WorkflowStatus.valueOf(workflowRow.status()),
                 workflowRow.createdAt());
     }
 

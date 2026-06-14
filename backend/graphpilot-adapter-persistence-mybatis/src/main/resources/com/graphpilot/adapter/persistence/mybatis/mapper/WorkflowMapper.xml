@@ -8,6 +8,7 @@
         <constructor>
             <arg column="id" javaType="java.lang.String" />
             <arg column="name" javaType="java.lang.String" />
+            <arg column="status" javaType="java.lang.String" />
             <arg column="created_at" javaType="java.time.Instant" />
         </constructor>
     </resultMap>
@@ -31,10 +32,11 @@
     </resultMap>
 
     <insert id="upsertWorkflow" parameterType="com.graphpilot.adapter.persistence.mybatis.row.WorkflowRow">
-        insert into workflows (id, name, created_at)
-        values (#{id}, #{name}, #{createdAt})
+        insert into workflows (id, name, status, created_at)
+        values (#{id}, #{name}, #{status}, #{createdAt})
         on conflict (id) do update set
             name = excluded.name,
+            status = excluded.status,
             created_at = excluded.created_at
     </insert>
 
@@ -65,7 +67,7 @@
     </insert>
 
     <select id="findWorkflowById" resultMap="WorkflowRowResultMap">
-        select id, name, created_at
+        select id, name, status, created_at
         from workflows
         where id = #{workflowId}
     </select>
@@ -105,7 +107,7 @@
     </select>
 
     <select id="findAllWorkflows" resultMap="WorkflowRowResultMap">
-        select id, name, created_at
+        select id, name, status, created_at
         from workflows
         order by created_at, id
         limit #{limit}

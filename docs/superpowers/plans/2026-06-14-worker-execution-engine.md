@@ -98,46 +98,46 @@ ALTER TABLE workflow_runs ADD COLUMN finished_at timestamptz;
 
 ### Task 1: Add domain events and update schema
 
-- [ ] Create `WorkflowRunCreatedEvent` in domain
-- [ ] Create `TaskResult` value object
-- [ ] Add V4 migration for worker fields
-- [ ] Update `TaskRunRow` and `WorkflowRunRow` with new fields
-- [ ] Update MyBatis mapper XML for new fields
-- [ ] Run tests to verify schema
+- [x] Create `WorkflowRunCreatedEvent` in domain
+- [x] Create `TaskResult` value object
+- [x] Add V4 migration for worker fields
+- [x] Update `TaskRunRow` and `WorkflowRunRow` with new fields
+- [x] Update MyBatis mapper XML for new fields
+- [x] Run tests to verify schema
 
 ### Task 2: Add application ports and services
 
-- [ ] Add `TaskHandler` interface in application
-- [ ] Add `TaskRunRepository` for status update
-- [ ] Add `EventPublisherPort` interface
-- [ ] Add `ExecuteWorkflowRunUseCase`
-- [ ] Add `WorkflowExecutionCoordinatorService`
-- [ ] Add `RetryService`
-- [ ] Write unit tests
+- [x] Add `TaskHandler` interface in application
+- [x] Add `TaskRunRepository` for status update
+- [x] Add `EventPublisherPort` interface
+- [x] Add `ExecuteWorkflowRunUseCase`
+- [x] Add `WorkflowExecutionCoordinatorService`
+- [x] Add `RetryService` (merged into coordinator)
+- [x] Write unit tests
 
 ### Task 3: Implement Worker adapter
 
-- [ ] Create `graphpilot-adapter-worker-spring` module
-- [ ] Add `WorkerConfiguration`
-- [ ] Add `WorkflowRunEventListener` 
-- [ ] Add `WorkflowExecutionCoordinator`
-- [ ] Add `TaskHandlerRegistry`
-- [ ] Implement `HttpTaskHandler`
-- [ ] Implement `ShellTaskHandler`
-- [ ] Implement `MockTaskHandler`
-- [ ] Write tests
+- [x] Create `graphpilot-adapter-worker-spring` module
+- [x] Add `WorkerConfiguration`
+- [x] Add `WorkflowRunEventListener` 
+- [x] Add `WorkflowExecutionCoordinator`
+- [x] Add `TaskHandlerRegistry`
+- [x] Implement `HttpTaskHandler`
+- [x] Implement `ShellTaskHandler`
+- [x] Implement `MockTaskHandler`
+- [x] Write tests
 
 ### Task 4: Wire bootstrap
 
-- [ ] Add new module to backend pom
-- [ ] Add assembly config
-- [ ] Update trigger to publish event
-- [ ] Integration test
+- [x] Add new module to backend pom
+- [x] Add assembly config
+- [x] Update trigger to publish event
+- [x] Integration test
 
 ### Task 5: Verify and document
 
-- [ ] Run full test suite
-- [ ] Update docs
+- [x] Run full test suite
+- [x] Update docs
 - [ ] Manual verification
 
 ## Acceptance

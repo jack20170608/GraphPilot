@@ -11,6 +11,7 @@ import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.DagDefinition;
+import com.graphpilot.domain.dag.DagEdge;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskResult;
@@ -118,21 +119,81 @@ class WorkflowExecutionCoordinatorServiceTest {
     }
 
     @Test
-    void executeReturnsWhenNoPendingTasks() {
+    void executeOnlyRunsTasksWithSatisfiedDependencies() {
         WorkflowRunId runId = WorkflowRunId.of("run-1");
         WorkflowId workflowId = WorkflowId.of("workflow-1");
         WorkflowRun runningRun = createWorkflowRun(runId, WorkflowRunStatus.RUNNING, workflowId);
-        TaskRun completedTask = createTaskRun("task-1", TaskRunStatus.SUCCEEDED, 0);
+
+        // task-1 -> task-2 (task-2 depends on task-1)
+        DagDefinition dagWithDeps = new DagDefinition(
+                List.of(
+                        new TaskDefinition(TaskId.of("task-1"), "Task 1", "mock"),
+                        new TaskDefinition(TaskId.of("task-2"), "Task 2", "mock")),
+                List.of(new DagEdge(TaskId.of("task-1"), TaskId.of("task-2"))));
+
+        Workflow workflowWithDeps = Workflow.restore(
+                workflowId,
+                new WorkflowName("Test Workflow"),
+                dagWithDeps,
+                WorkflowStatus.DRAFT,
+                NOW);
+
+        // Both tasks are PENDING
+        TaskRun task1Pending = createTaskRun("task-1", TaskRunStatus.PENDING, 0);
+        TaskRun task2Pending = createTaskRun("task-2", TaskRunStatus.PENDING, 1);
 
         when(workflowRunRepository.findRunById(runId)).thenReturn(Optional.of(runningRun));
-        when(workflowRepository.findById(workflowId)).thenReturn(Optional.of(createWorkflow(workflowId)));
-        when(workflowRunRepository.findTaskRunsByRunId(runId)).thenReturn(List.of(completedTask));
-        when(taskHandlerProvider.getHandler(any())).thenReturn(taskHandler);
+        when(workflowRepository.findById(workflowId)).thenReturn(Optional.of(workflowWithDeps));
+        // First call: find runnable tasks, return both
+        // Second call: after task-1 executed, check completion, return both (task-1 succeeded, task-2 still pending)
+        when(workflowRunRepository.findTaskRunsByRunId(runId))
+                .thenReturn(List.of(task1Pending, task2Pending))
+                .thenReturn(List.of(task1Pending, task2Pending));
+        when(taskHandlerProvider.getHandler("mock")).thenReturn(taskHandler);
+        when(taskHandler.execute(any(), any(), any())).thenReturn(TaskResult.success("done"));
 
         coordinator.execute(runId);
 
-        // No handler should be called since no pending tasks
-        verify(taskHandler, never()).execute(any(), any(), any());
+        // Only task-1 should be executed (task-2 depends on task-1 which hasn't completed yet)
+        verify(taskHandler, times(1)).execute(any(), any(), any());
+    }
+
+    @Test
+    void executeRunsTasksWhenDependenciesAreCompleted() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        WorkflowRun runningRun = createWorkflowRun(runId, WorkflowRunStatus.RUNNING, workflowId);
+
+        // task-1 -> task-2
+        DagDefinition dagWithDeps = new DagDefinition(
+                List.of(
+                        new TaskDefinition(TaskId.of("task-1"), "Task 1", "mock"),
+                        new TaskDefinition(TaskId.of("task-2"), "Task 2", "mock")),
+                List.of(new DagEdge(TaskId.of("task-1"), TaskId.of("task-2"))));
+
+        Workflow workflowWithDeps = Workflow.restore(
+                workflowId,
+                new WorkflowName("Test Workflow"),
+                dagWithDeps,
+                WorkflowStatus.DRAFT,
+                NOW);
+
+        // task-1 already SUCCEEDED, task-2 is PENDING
+        TaskRun task1Succeeded = createTaskRun("task-1", TaskRunStatus.SUCCEEDED, 0);
+        TaskRun task2Pending = createTaskRun("task-2", TaskRunStatus.PENDING, 1);
+
+        when(workflowRunRepository.findRunById(runId)).thenReturn(Optional.of(runningRun));
+        when(workflowRepository.findById(workflowId)).thenReturn(Optional.of(workflowWithDeps));
+        when(workflowRunRepository.findTaskRunsByRunId(runId))
+                .thenReturn(List.of(task1Succeeded, task2Pending))
+                .thenReturn(List.of(task1Succeeded, task2Pending));
+        when(taskHandlerProvider.getHandler("mock")).thenReturn(taskHandler);
+        when(taskHandler.execute(any(), any(), any())).thenReturn(TaskResult.success("done"));
+
+        coordinator.execute(runId);
+
+        // task-2 should be executed now (dependency task-1 is SUCCEEDED)
+        verify(taskHandler, times(1)).execute(any(), any(), any());
     }
 
     @Test

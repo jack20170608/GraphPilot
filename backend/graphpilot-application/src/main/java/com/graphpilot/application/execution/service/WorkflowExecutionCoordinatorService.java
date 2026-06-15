@@ -7,6 +7,7 @@ import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.DagDefinition;
+import com.graphpilot.domain.dag.DagEdge;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskRun;
@@ -85,7 +86,7 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
                 .map(TaskRun::taskId)
                 .collect(Collectors.toSet());
 
-        List<TaskRun> runnableTasks = findRunnableTasks(taskRuns, taskDefsById, completedTaskIds);
+        List<TaskRun> runnableTasks = findRunnableTasks(taskRuns, taskDefsById, completedTaskIds, dag);
 
         // Execute each runnable task
         for (TaskRun taskRun : runnableTasks) {
@@ -100,7 +101,15 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
     private List<TaskRun> findRunnableTasks(
             List<TaskRun> taskRuns,
             Map<TaskId, TaskDefinition> taskDefsById,
-            Set<TaskId> completedTaskIds) {
+            Set<TaskId> completedTaskIds,
+            DagDefinition dag) {
+
+        // Build dependency map from DAG edges
+        Map<TaskId, Set<TaskId>> dependencies = new java.util.HashMap<>();
+        for (DagEdge edge : dag.edges()) {
+            dependencies.computeIfAbsent(edge.toTaskId(), k -> new java.util.HashSet<>())
+                    .add(edge.fromTaskId());
+        }
 
         return taskRuns.stream()
                 .filter(tr -> tr.status() == TaskRunStatus.PENDING)
@@ -109,8 +118,13 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
                     if (taskDef == null) {
                         return false;
                     }
-                    // For MVP: simple topological order by position
-                    return true;
+                    // Check if all dependencies are satisfied
+                    Set<TaskId> deps = dependencies.get(tr.taskId());
+                    if (deps == null || deps.isEmpty()) {
+                        return true; // No dependencies, can run immediately
+                    }
+                    // All dependencies must be completed
+                    return completedTaskIds.containsAll(deps);
                 })
                 .sorted((a, b) -> Integer.compare(a.position(), b.position()))
                 .toList();

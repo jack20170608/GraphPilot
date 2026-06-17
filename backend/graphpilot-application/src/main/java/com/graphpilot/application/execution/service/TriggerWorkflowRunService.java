@@ -10,6 +10,7 @@ import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.execution.TaskRun;
+import com.graphpilot.domain.execution.TimelineEventType;
 import com.graphpilot.domain.execution.WorkflowRun;
 import com.graphpilot.domain.execution.WorkflowRunCreatedEvent;
 import com.graphpilot.domain.execution.WorkflowRunId;
@@ -28,6 +29,7 @@ public final class TriggerWorkflowRunService implements TriggerWorkflowRunUseCas
     private final TaskRunIdGeneratorPort taskRunIdGenerator;
     private final ClockPort clock;
     private final EventPublisherPort eventPublisher;
+    private final TimelineRecorder timelineRecorder;
 
     public TriggerWorkflowRunService(
             WorkflowRepository workflowRepository,
@@ -36,6 +38,18 @@ public final class TriggerWorkflowRunService implements TriggerWorkflowRunUseCas
             TaskRunIdGeneratorPort taskRunIdGenerator,
             ClockPort clock,
             EventPublisherPort eventPublisher) {
+        this(workflowRepository, workflowRunRepository, workflowRunIdGenerator,
+                taskRunIdGenerator, clock, eventPublisher, TimelineRecorder.noop(clock));
+    }
+
+    public TriggerWorkflowRunService(
+            WorkflowRepository workflowRepository,
+            WorkflowRunRepository workflowRunRepository,
+            WorkflowRunIdGeneratorPort workflowRunIdGenerator,
+            TaskRunIdGeneratorPort taskRunIdGenerator,
+            ClockPort clock,
+            EventPublisherPort eventPublisher,
+            TimelineRecorder timelineRecorder) {
         this.workflowRepository = Objects.requireNonNull(
                 workflowRepository,
                 "workflowRepository must not be null");
@@ -50,6 +64,7 @@ public final class TriggerWorkflowRunService implements TriggerWorkflowRunUseCas
                 "taskRunIdGenerator must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.eventPublisher = Objects.requireNonNull(eventPublisher, "eventPublisher must not be null");
+        this.timelineRecorder = Objects.requireNonNull(timelineRecorder, "timelineRecorder must not be null");
     }
 
     @Override
@@ -65,6 +80,7 @@ public final class TriggerWorkflowRunService implements TriggerWorkflowRunUseCas
         List<TaskRun> taskRuns = createTaskRuns(workflowRun, workflow.dag().tasks(), triggeredAt);
 
         WorkflowRun savedRun = workflowRunRepository.save(workflowRun, taskRuns);
+        timelineRecorder.run(savedRun.id(), TimelineEventType.RUN_CREATED, "Workflow run created");
 
         // Publish event to trigger worker execution
         eventPublisher.publish(new WorkflowRunCreatedEvent(savedRun.id(), workflow.id()));

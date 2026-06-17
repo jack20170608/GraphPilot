@@ -13,6 +13,7 @@ import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskRun;
 import com.graphpilot.domain.execution.TaskRunStatus;
 import com.graphpilot.domain.execution.TaskResult;
+import com.graphpilot.domain.execution.TimelineEventType;
 import com.graphpilot.domain.execution.WorkflowRun;
 import com.graphpilot.domain.execution.WorkflowRunId;
 import com.graphpilot.domain.execution.WorkflowRunStatus;
@@ -36,13 +37,15 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
     private final TaskHandlerProvider taskHandlerProvider;
     private final ClockPort clock;
     private final BackoffStrategy backoffStrategy;
+    private final TimelineRecorder timelineRecorder;
 
     public WorkflowExecutionCoordinatorService(
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
             TaskHandlerProvider taskHandlerProvider,
             ClockPort clock) {
-        this(workflowRepository, workflowRunRepository, taskHandlerProvider, clock, attemptNumber -> { });
+        this(workflowRepository, workflowRunRepository, taskHandlerProvider,
+                clock, attemptNumber -> { }, TimelineRecorder.noop(clock));
     }
 
     public WorkflowExecutionCoordinatorService(
@@ -51,11 +54,23 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             TaskHandlerProvider taskHandlerProvider,
             ClockPort clock,
             BackoffStrategy backoffStrategy) {
+        this(workflowRepository, workflowRunRepository, taskHandlerProvider,
+                clock, backoffStrategy, TimelineRecorder.noop(clock));
+    }
+
+    public WorkflowExecutionCoordinatorService(
+            WorkflowRepository workflowRepository,
+            WorkflowRunRepository workflowRunRepository,
+            TaskHandlerProvider taskHandlerProvider,
+            ClockPort clock,
+            BackoffStrategy backoffStrategy,
+            TimelineRecorder timelineRecorder) {
         this.workflowRepository = Objects.requireNonNull(workflowRepository, "workflowRepository must not be null");
         this.workflowRunRepository = Objects.requireNonNull(workflowRunRepository, "workflowRunRepository must not be null");
         this.taskHandlerProvider = Objects.requireNonNull(taskHandlerProvider, "taskHandlerProvider must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.backoffStrategy = Objects.requireNonNull(backoffStrategy, "backoffStrategy must not be null");
+        this.timelineRecorder = Objects.requireNonNull(timelineRecorder, "timelineRecorder must not be null");
     }
 
     @Override
@@ -84,6 +99,7 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         // Mark workflow as RUNNING if first time
         if (workflowRun.status() == WorkflowRunStatus.PENDING) {
             updateWorkflowRunStatus(workflowRunId, WorkflowRunStatus.RUNNING, clock.now());
+            timelineRecorder.run(workflowRunId, TimelineEventType.RUN_STARTED, "Workflow run started");
         }
 
         // Wave-based execution loop: repeatedly execute runnable tasks and cascade
@@ -177,6 +193,9 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
                 TaskRun skipped = taskRun.withStatus(TaskRunStatus.SKIPPED)
                         .withFinishedAt(clock.now());
                 workflowRunRepository.updateTaskRunStatus(workflowRunId, skipped);
+                timelineRecorder.task(workflowRunId, skipped.id(), skipped.taskId(),
+                        TimelineEventType.TASK_SKIPPED,
+                        "Task " + skipped.taskId().value() + " skipped because dependency failed");
                 anySkipped = true;
             }
         }
@@ -190,6 +209,9 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         Instant startedAt = taskRun.startedAt() != null ? taskRun.startedAt() : defaultStartedAt;
         workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(),
                 taskRun.withStatus(TaskRunStatus.RUNNING).withStartedAt(startedAt));
+        timelineRecorder.task(taskRun.workflowRunId(), taskRun.id(), taskRun.taskId(),
+                TimelineEventType.TASK_STARTED,
+                "Task " + taskRun.taskId().value() + " started");
 
         TaskResult result;
         try {
@@ -221,7 +243,20 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), retried);
         } else {
             workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), finishedTaskRun);
+            recordTerminalTaskEvent(finishedTaskRun);
         }
+    }
+
+    private void recordTerminalTaskEvent(TaskRun taskRun) {
+        TimelineEventType type = switch (taskRun.status()) {
+            case SUCCEEDED -> TimelineEventType.TASK_SUCCEEDED;
+            case FAILED -> TimelineEventType.TASK_FAILED;
+            case SKIPPED -> TimelineEventType.TASK_SKIPPED;
+            case PENDING, RUNNING -> throw new IllegalStateException("Task is not terminal: " + taskRun.status());
+        };
+        timelineRecorder.task(taskRun.workflowRunId(), taskRun.id(), taskRun.taskId(),
+                type,
+                "Task " + taskRun.taskId().value() + " " + taskRun.status().name().toLowerCase());
     }
 
     private void checkWorkflowCompletion(WorkflowRunId workflowRunId, List<TaskRun> taskRuns) {
@@ -238,6 +273,14 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             WorkflowRunStatus finalStatus = allSucceeded ?
                     WorkflowRunStatus.SUCCEEDED : WorkflowRunStatus.FAILED;
             updateWorkflowRunStatus(workflowRunId, finalStatus, now);
+            timelineRecorder.run(
+                    workflowRunId,
+                    finalStatus == WorkflowRunStatus.SUCCEEDED
+                            ? TimelineEventType.RUN_SUCCEEDED
+                            : TimelineEventType.RUN_FAILED,
+                    finalStatus == WorkflowRunStatus.SUCCEEDED
+                            ? "Workflow run succeeded"
+                            : "Workflow run failed");
         }
     }
 

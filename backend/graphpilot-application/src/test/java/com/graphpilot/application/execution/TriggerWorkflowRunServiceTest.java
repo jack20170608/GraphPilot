@@ -4,9 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.graphpilot.application.execution.port.out.EventPublisherPort;
+import com.graphpilot.application.execution.port.out.TimelineEventIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.TaskRunIdGeneratorPort;
+import com.graphpilot.application.execution.port.out.WorkflowRunTimelineRepository;
 import com.graphpilot.application.execution.port.out.WorkflowRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
+import com.graphpilot.application.execution.service.TimelineRecorder;
 import com.graphpilot.application.execution.service.TriggerWorkflowRunService;
 import com.graphpilot.application.workflow.WorkflowNotFoundException;
 import com.graphpilot.application.workflow.port.out.ClockPort;
@@ -17,8 +20,11 @@ import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskRun;
 import com.graphpilot.domain.execution.TaskRunId;
 import com.graphpilot.domain.execution.TaskRunStatus;
+import com.graphpilot.domain.execution.TimelineEventId;
+import com.graphpilot.domain.execution.TimelineEventType;
 import com.graphpilot.domain.execution.WorkflowRun;
 import com.graphpilot.domain.execution.WorkflowRunId;
+import com.graphpilot.domain.execution.WorkflowRunTimelineEvent;
 import com.graphpilot.domain.execution.WorkflowRunStatus;
 import com.graphpilot.domain.execution.WorkflowRunTriggerException;
 import com.graphpilot.domain.workflow.Workflow;
@@ -45,6 +51,8 @@ class TriggerWorkflowRunServiceTest {
     private QueueTaskRunIdGenerator taskRunIdGenerator;
     private FixedClock clock;
     private NoOpEventPublisher eventPublisher;
+    private RecordingTimelineRepository timelineRepository;
+    private QueueTimelineEventIdGenerator timelineEventIdGenerator;
     private TriggerWorkflowRunService service;
 
     @BeforeEach
@@ -58,13 +66,16 @@ class TriggerWorkflowRunServiceTest {
                 TaskRunId.of("task-run-3"));
         clock = new FixedClock(NOW);
         eventPublisher = new NoOpEventPublisher();
+        timelineRepository = new RecordingTimelineRepository();
+        timelineEventIdGenerator = new QueueTimelineEventIdGenerator(TimelineEventId.of("event-1"));
         service = new TriggerWorkflowRunService(
                 workflowRepository,
                 workflowRunRepository,
                 workflowRunIdGenerator,
                 taskRunIdGenerator,
                 clock,
-                eventPublisher);
+                eventPublisher,
+                new TimelineRecorder(timelineRepository, timelineEventIdGenerator, clock));
     }
 
     @Test
@@ -94,7 +105,10 @@ class TriggerWorkflowRunServiceTest {
         assertThat(workflowRunRepository.savedTaskRuns)
                 .extracting(TaskRun::createdAt)
                 .containsExactly(NOW, NOW);
-        assertThat(clock.callCount).isEqualTo(1);
+        assertThat(timelineRepository.events)
+                .extracting(WorkflowRunTimelineEvent::type)
+                .containsExactly(TimelineEventType.RUN_CREATED);
+        assertThat(clock.callCount).isEqualTo(2);
     }
 
     @Test
@@ -248,6 +262,39 @@ class TriggerWorkflowRunServiceTest {
         public Instant now() {
             callCount++;
             return now;
+        }
+    }
+
+    private static final class QueueTimelineEventIdGenerator implements TimelineEventIdGeneratorPort {
+
+        private final ArrayDeque<TimelineEventId> ids;
+
+        private QueueTimelineEventIdGenerator(TimelineEventId... ids) {
+            this.ids = new ArrayDeque<>(List.of(ids));
+        }
+
+        @Override
+        public TimelineEventId nextTimelineEventId() {
+            return ids.removeFirst();
+        }
+    }
+
+    private static final class RecordingTimelineRepository implements WorkflowRunTimelineRepository {
+
+        private final List<WorkflowRunTimelineEvent> events = new ArrayList<>();
+
+        @Override
+        public WorkflowRunTimelineEvent save(WorkflowRunTimelineEvent event) {
+            events.add(event);
+            return event;
+        }
+
+        @Override
+        public List<WorkflowRunTimelineEvent> findByWorkflowRunId(WorkflowRunId workflowRunId, int limit) {
+            return events.stream()
+                    .filter(event -> event.workflowRunId().equals(workflowRunId))
+                    .limit(limit)
+                    .toList();
         }
     }
 

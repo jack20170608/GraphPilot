@@ -1,5 +1,7 @@
 package com.graphpilot.adapter.persistence.mybatis;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphpilot.adapter.persistence.mybatis.mapper.WorkflowMapper;
 import com.graphpilot.adapter.persistence.mybatis.row.WorkflowEdgeRow;
 import com.graphpilot.adapter.persistence.mybatis.row.WorkflowRow;
@@ -7,6 +9,7 @@ import com.graphpilot.adapter.persistence.mybatis.row.WorkflowTaskRow;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.DagDefinition;
 import com.graphpilot.domain.dag.DagEdge;
+import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.workflow.Workflow;
@@ -24,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MyBatisWorkflowRepository implements WorkflowRepository {
 
     private static final String POSITIVE_LIMIT_REQUIRED = "Workflow query limit must be positive";
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final WorkflowMapper workflowMapper;
 
@@ -113,7 +117,9 @@ public class MyBatisWorkflowRepository implements WorkflowRepository {
                             workflowId,
                             task.id().value(),
                             task.name(),
-                            position);
+                            task.type(),
+                            position,
+                            toConfigJson(task.config()));
                 })
                 .toList();
     }
@@ -159,7 +165,31 @@ public class MyBatisWorkflowRepository implements WorkflowRepository {
     }
 
     private TaskDefinition toTaskDefinition(WorkflowTaskRow taskRow) {
-        return new TaskDefinition(TaskId.of(taskRow.taskId()), taskRow.name());
+        return new TaskDefinition(
+                TaskId.of(taskRow.taskId()),
+                taskRow.name(),
+                taskRow.type(),
+                toTaskConfig(taskRow.configJson()));
+    }
+
+    private static String toConfigJson(TaskConfig config) {
+        try {
+            return JSON.writeValueAsString(config.asMap());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Task config must be JSON serializable", e);
+        }
+    }
+
+    private static TaskConfig toTaskConfig(String configJson) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> values = JSON.readValue(
+                    configJson == null || configJson.isBlank() ? "{}" : configJson,
+                    Map.class);
+            return TaskConfig.of(values);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Stored task config is not valid JSON", e);
+        }
     }
 
     private DagEdge toDagEdge(WorkflowEdgeRow edgeRow) {

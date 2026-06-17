@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.DagDefinition;
 import com.graphpilot.domain.dag.DagEdge;
+import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.workflow.Workflow;
@@ -14,6 +15,7 @@ import com.graphpilot.domain.workflow.WorkflowName;
 import com.graphpilot.domain.workflow.WorkflowStatus;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +77,27 @@ class MyBatisWorkflowRepositoryTest {
         assertThat(savedWorkflow).isEqualTo(workflow);
         assertThat(repository.findById(workflow.id()))
                 .hasValueSatisfying(found -> assertWorkflowEquals(found, workflow));
+    }
+
+    @Test
+    void savesAndLoadsTaskConfig() {
+        Workflow workflow = workflow(
+                "workflow-config",
+                "Config Workflow",
+                Instant.parse("2026-06-13T00:00:00Z"),
+                List.of(new TaskDefinition(
+                        TaskId.of("shell"),
+                        "Shell task",
+                        "shell",
+                        TaskConfig.of(Map.of("command", "echo hi", "timeout", 10)))),
+                List.of());
+
+        repository.save(workflow);
+
+        Workflow found = repository.findById(workflow.id()).orElseThrow();
+        TaskDefinition task = found.dag().tasks().getFirst();
+        assertThat(task.config().getString("command")).contains("echo hi");
+        assertThat(task.config().getLong("timeout")).contains(10L);
     }
 
     @Test

@@ -18,7 +18,9 @@
             <arg column="workflow_id" javaType="java.lang.String" />
             <arg column="task_id" javaType="java.lang.String" />
             <arg column="name" javaType="java.lang.String" />
+            <arg column="type" javaType="java.lang.String" />
             <arg column="position" javaType="int" />
+            <arg column="config" javaType="java.lang.String" />
         </constructor>
     </resultMap>
 
@@ -51,10 +53,10 @@
     </delete>
 
     <insert id="insertTasks">
-        insert into workflow_tasks (workflow_id, task_id, name, position)
+        insert into workflow_tasks (workflow_id, task_id, name, type, position, config)
         values
         <foreach collection="tasks" item="task" separator=",">
-            (#{task.workflowId}, #{task.taskId}, #{task.name}, #{task.position})
+            (#{task.workflowId}, #{task.taskId}, #{task.name}, #{task.type}, #{task.position}, CAST(#{task.configJson} AS jsonb))
         </foreach>
     </insert>
 
@@ -80,14 +82,14 @@
     </select>
 
     <select id="findTasksByWorkflowId" resultMap="WorkflowTaskRowResultMap">
-        select workflow_id, task_id, name, position
+        select workflow_id, task_id, name, type, position, config
         from workflow_tasks
         where workflow_id = #{workflowId}
         order by position, task_id
     </select>
 
     <select id="findTasksByWorkflowIds" resultMap="WorkflowTaskRowResultMap">
-        select workflow_id, task_id, name, position
+        select workflow_id, task_id, name, type, position, config
         from workflow_tasks
         where workflow_id in
         <foreach collection="workflowIds" item="workflowId" open="(" separator="," close=")">

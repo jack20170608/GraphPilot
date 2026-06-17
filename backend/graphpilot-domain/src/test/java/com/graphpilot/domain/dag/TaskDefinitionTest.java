@@ -3,6 +3,7 @@ package com.graphpilot.domain.dag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class TaskDefinitionTest {
@@ -37,5 +38,24 @@ class TaskDefinitionTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new TaskDefinition(TaskId.of("extract"), " "));
+    }
+
+    @Test
+    void defaultsConfigToEmpty() {
+        TaskDefinition task = new TaskDefinition(TaskId.of("extract"), "Extract data");
+
+        assertEquals(TaskConfig.empty(), task.config());
+    }
+
+    @Test
+    void acceptsStaticConfig() {
+        TaskDefinition task = new TaskDefinition(
+                TaskId.of("extract"),
+                "Extract data",
+                "shell",
+                TaskConfig.of(Map.of("command", "echo hi")));
+
+        assertEquals("shell", task.type());
+        assertEquals("echo hi", task.config().getString("command").orElseThrow());
     }
 }

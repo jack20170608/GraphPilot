@@ -17,6 +17,8 @@ export type TaskRunStatus =
 export interface TaskDefinition {
   id: string;
   name: string;
+  type?: string;
+  config?: Record<string, unknown>;
 }
 
 export interface DagEdge {
@@ -35,8 +37,8 @@ export interface Workflow {
 
 export interface CreateWorkflowRequest {
   name: string;
-  tasks: { id: string; name: string }[];
-  edges: { fromTaskId: string; toTaskId: string }[];
+  tasks: Array<{ id: string; name: string; type?: string; config?: Record<string, unknown> }>;
+  edges: Array<{ fromTaskId: string; toTaskId: string }>;
 }
 
 export interface CreateWorkflowResponse {
@@ -54,6 +56,26 @@ export interface WorkflowRun {
 
 export interface CreateWorkflowRunResponse {
   id: string;
+}
+
+export type TimelineEventType =
+  | "RUN_CREATED"
+  | "RUN_STARTED"
+  | "TASK_STARTED"
+  | "TASK_SUCCEEDED"
+  | "TASK_FAILED"
+  | "TASK_SKIPPED"
+  | "RUN_SUCCEEDED"
+  | "RUN_FAILED";
+
+export interface WorkflowRunTimelineEvent {
+  id: string;
+  workflowRunId: string;
+  taskRunId?: string;
+  taskId?: string;
+  type: TimelineEventType;
+  message: string;
+  occurredAt: string;
 }
 
 export interface TaskRun {

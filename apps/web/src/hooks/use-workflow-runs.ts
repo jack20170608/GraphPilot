@@ -47,3 +47,12 @@ export function useTaskRuns(runId: string, isRunning: boolean) {
     refetchInterval: isRunning ? POLL_INTERVAL_MS : false,
   });
 }
+
+export function useWorkflowRunTimeline(runId: string, isRunning: boolean, limit = 200) {
+  return useQuery({
+    queryKey: ["workflow-run-timeline", runId, limit],
+    queryFn: () => runsApi.listTimelineEvents(runId, limit),
+    enabled: !!runId,
+    refetchInterval: isRunning ? POLL_INTERVAL_MS : false,
+  });
+}

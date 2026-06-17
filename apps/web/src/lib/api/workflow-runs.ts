@@ -3,6 +3,7 @@ import type {
   WorkflowRun,
   TaskRun,
   CreateWorkflowRunResponse,
+  WorkflowRunTimelineEvent,
 } from "../types";
 
 export function listWorkflowRuns(
@@ -32,5 +33,14 @@ export function triggerWorkflowRun(
 export function listTaskRuns(runId: string): Promise<TaskRun[]> {
   return request<TaskRun[]>(
     `/api/workflow-runs/${encodeURIComponent(runId)}/tasks`,
+  );
+}
+
+export function listTimelineEvents(
+  runId: string,
+  limit = 200,
+): Promise<WorkflowRunTimelineEvent[]> {
+  return request<WorkflowRunTimelineEvent[]>(
+    `/api/workflow-runs/${encodeURIComponent(runId)}/timeline${buildQueryString({ limit })}`,
   );
 }

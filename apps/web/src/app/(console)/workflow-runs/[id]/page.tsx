@@ -1,10 +1,11 @@
 "use client";
 
 import { use } from "react";
-import { useWorkflowRun, useTaskRuns } from "@/hooks/use-workflow-runs";
+import { useWorkflowRun, useTaskRuns, useWorkflowRunTimeline } from "@/hooks/use-workflow-runs";
 import { useWorkflow } from "@/hooks/use-workflows";
 import { WorkflowRunStatusBadge } from "@/components/shared/status-badge";
 import { TaskRunTable } from "@/components/run/task-run-table";
+import { WorkflowRunTimeline } from "@/components/run/workflow-run-timeline";
 import { DagViewer } from "@/components/dag/dag-viewer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,8 @@ function WorkflowRunDetail({ runId }: { runId: string }) {
   const { data: run, isLoading: runLoading, error: runError } = useWorkflowRun(runId);
   const isRunning = run?.status === "PENDING" || run?.status === "RUNNING";
   const { data: taskRuns } = useTaskRuns(runId, isRunning);
+  const { data: timeline = [], isLoading: timelineLoading, error: timelineError } =
+    useWorkflowRunTimeline(runId, isRunning);
   const { data: workflow } = useWorkflow(run?.workflowId ?? "");
 
   if (runLoading) return <div className="py-8 text-center text-muted-foreground">加载中...</div>;
@@ -85,6 +88,7 @@ function WorkflowRunDetail({ runId }: { runId: string }) {
           <TabsList>
             <TabsTrigger value="dag">DAG 拓扑</TabsTrigger>
             <TabsTrigger value="tasks">任务列表</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
           <TabsContent value="dag" className="mt-4">
             <DagViewer
@@ -95,6 +99,13 @@ function WorkflowRunDetail({ runId }: { runId: string }) {
           </TabsContent>
           <TabsContent value="tasks" className="mt-4">
             <TaskRunTable runId={runId} isRunning={isRunning} />
+          </TabsContent>
+          <TabsContent value="timeline" className="mt-4">
+            <WorkflowRunTimeline
+              events={timeline}
+              isLoading={timelineLoading}
+              error={timelineError instanceof Error ? timelineError : null}
+            />
           </TabsContent>
         </Tabs>
       )}

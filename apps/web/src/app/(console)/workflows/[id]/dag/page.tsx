@@ -1,18 +1,18 @@
 "use client";
 
+import { use } from "react";
 import { useWorkflow } from "@/hooks/use-workflows";
-import { useTaskRuns } from "@/hooks/use-workflow-runs";
 import { DagViewer } from "@/components/dag/dag-viewer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-export default async function DagViewerPage({
+export default function DagViewerPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id } = use(params);
   return <DagViewerWrapper workflowId={id} />;
 }
 
@@ -26,10 +26,8 @@ function DagViewerWrapper({ workflowId }: { workflowId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/workflows/${workflowId}`}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+        <Button variant="ghost" size="icon" render={<Link href={`/workflows/${workflowId}`} />}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-xl font-bold">DAG: {workflow.name}</h1>
       </div>

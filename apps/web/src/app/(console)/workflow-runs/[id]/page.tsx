@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { useWorkflowRun, useTaskRuns } from "@/hooks/use-workflow-runs";
 import { useWorkflow } from "@/hooks/use-workflows";
 import { WorkflowRunStatusBadge } from "@/components/shared/status-badge";
@@ -11,12 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-export default async function WorkflowRunDetailPage({
+export default function WorkflowRunDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id } = use(params);
   return <WorkflowRunDetail runId={id} />;
 }
 
@@ -36,10 +37,8 @@ function WorkflowRunDetail({ runId }: { runId: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/workflow-runs">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+        <Button variant="ghost" size="icon" render={<Link href="/workflow-runs" />}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
           <h1 className="text-xl font-bold">Workflow Run</h1>

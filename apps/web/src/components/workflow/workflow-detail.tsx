@@ -11,9 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useActivateWorkflow, usePauseWorkflow, useResumeWorkflow, useArchiveWorkflow, useTriggerWorkflowRun } from "@/hooks/use-workflows";
+import { useActivateWorkflow, usePauseWorkflow, useResumeWorkflow, useArchiveWorkflow } from "@/hooks/use-workflows";
 import { useTriggerWorkflowRun as useTriggerRun } from "@/hooks/use-workflow-runs";
-import { MoreHorizontal, Play, Pause, Resume, Archive, Rocket } from "lucide-react";
+import { MoreHorizontal, Play, Pause, PlayCircle, Archive, Rocket } from "lucide-react";
 import Link from "next/link";
 
 interface WorkflowDetailProps {
@@ -58,10 +58,8 @@ export function WorkflowDetail({ workflowId }: WorkflowDetailProps) {
             </Button>
           )}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
+            <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
+              <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {canActivate && (
@@ -76,7 +74,7 @@ export function WorkflowDetail({ workflowId }: WorkflowDetailProps) {
               )}
               {canResume && (
                 <DropdownMenuItem onClick={() => resumeMutation.mutate(workflow.id)}>
-                  <Resume className="mr-2 h-4 w-4" /> 恢复
+                  <PlayCircle className="mr-2 h-4 w-4" /> 恢复
                 </DropdownMenuItem>
               )}
               {canArchive && (

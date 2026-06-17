@@ -10,11 +10,9 @@ export default function WorkflowsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Workflows</h1>
-        <Button asChild>
-          <Link href="/workflows/new">
-            <Plus className="mr-2 h-4 w-4" />
-            创建 Workflow
-          </Link>
+        <Button render={<Link href="/workflows/new" />}>
+          <Plus className="mr-2 h-4 w-4" />
+          创建 Workflow
         </Button>
       </div>
       <WorkflowTable />

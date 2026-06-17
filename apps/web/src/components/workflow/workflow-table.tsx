@@ -23,8 +23,8 @@ export function WorkflowTable() {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <p className="text-muted-foreground">暂无 Workflow</p>
-        <Button asChild>
-          <Link href="/workflows/new"><Plus className="mr-2 h-4 w-4" />创建 Workflow</Link>
+        <Button render={<Link href="/workflows/new" />}>
+          <Plus className="mr-2 h-4 w-4" />创建 Workflow
         </Button>
       </div>
     );

@@ -35,6 +35,7 @@ bootstrap -> adapters -> application -> domain
 - `graphpilot-adapter-persistence-mybatis` — MyBatis persistence adapter。启用 `postgres` profile 时，它通过 PostgreSQL 与 Flyway schema 为 Workflow create/get/list 和 Workflow Run 元数据提供持久化实现。
 - `graphpilot-adapter-worker` — 框架中立的 worker 核心：task handlers（http/shell/mock）与 handler registry，仅依赖 `graphpilot-application`，不耦合任何运行时框架，便于未来由 Spring、Micronaut 或独立进程托管。
 - `graphpilot-adapter-worker-spring` — Spring 事件胶水：将框架中立的 worker 核心桥接到 Spring 事件总线（`SpringEventPublisher` 发布、`WorkflowRunEventListener` 订阅），不承载任何 handler 逻辑。
+- `graphpilot-adapter-worker-micronaut` — Micronaut 事件胶水 PoC：与 Spring 胶水对等，复用同一份框架中立 worker 核心（`MicronautEventPublisher` + `WorkflowRunEventListener`），验证 worker 核心可移植到 Micronaut runtime（ADR 0004）。
 - 未来 adapters 可能包括 Spring Security、Quartz scheduling、Redis locks/events、Kubernetes workers、Docker workers 或其它 persistence implementations。
 
 ### Bootstrap Module

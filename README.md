@@ -49,6 +49,7 @@ GraphPilot/
     graphpilot-adapter-persistence-mybatis/
     graphpilot-adapter-worker/           # 框架中立的 worker 核心（handlers + registry）
     graphpilot-adapter-worker-spring/    # Spring 事件胶水（worker 核心的 Spring 托管适配）
+    graphpilot-adapter-worker-micronaut/ # Micronaut 事件胶水 PoC（验证 worker 核心可移植）
     graphpilot-bootstrap-spring/         # Spring Boot 组装模块
   docs/
     product/

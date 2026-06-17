@@ -48,6 +48,8 @@ export interface WorkflowRun {
   workflowId: string;
   status: WorkflowRunStatus;
   triggeredAt: string;
+  startedAt?: string;
+  finishedAt?: string;
 }
 
 export interface CreateWorkflowRunResponse {
@@ -59,7 +61,13 @@ export interface TaskRun {
   workflowRunId: string;
   taskId: string;
   taskName: string;
+  taskType: string;
   status: TaskRunStatus;
   position: number;
+  retryCount: number;
+  maxRetries: number;
+  errorMessage?: string;
+  startedAt?: string;
+  finishedAt?: string;
   createdAt: string;
 }

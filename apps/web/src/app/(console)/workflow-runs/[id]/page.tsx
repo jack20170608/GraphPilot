@@ -23,7 +23,8 @@ export default function WorkflowRunDetailPage({
 
 function WorkflowRunDetail({ runId }: { runId: string }) {
   const { data: run, isLoading: runLoading, error: runError } = useWorkflowRun(runId);
-  const { data: taskRuns } = useTaskRuns(runId);
+  const isRunning = run?.status === "PENDING" || run?.status === "RUNNING";
+  const { data: taskRuns } = useTaskRuns(runId, isRunning);
   const { data: workflow } = useWorkflow(run?.workflowId ?? "");
 
   if (runLoading) return <div className="py-8 text-center text-muted-foreground">加载中...</div>;
@@ -64,6 +65,18 @@ function WorkflowRunDetail({ runId }: { runId: string }) {
             <span className="text-muted-foreground">触发时间</span>
             <span>{new Date(run.triggeredAt).toLocaleString("zh-CN")}</span>
           </div>
+          {run.startedAt && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">开始时间</span>
+              <span>{new Date(run.startedAt).toLocaleString("zh-CN")}</span>
+            </div>
+          )}
+          {run.finishedAt && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">结束时间</span>
+              <span>{new Date(run.finishedAt).toLocaleString("zh-CN")}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -81,7 +94,7 @@ function WorkflowRunDetail({ runId }: { runId: string }) {
             />
           </TabsContent>
           <TabsContent value="tasks" className="mt-4">
-            <TaskRunTable runId={runId} />
+            <TaskRunTable runId={runId} isRunning={isRunning} />
           </TabsContent>
         </Tabs>
       )}

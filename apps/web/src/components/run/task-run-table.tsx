@@ -13,10 +13,16 @@ import {
 
 interface TaskRunTableProps {
   runId: string;
+  isRunning: boolean;
 }
 
-export function TaskRunTable({ runId }: TaskRunTableProps) {
-  const { data: taskRuns, isLoading, error } = useTaskRuns(runId);
+function formatInstant(iso?: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("zh-CN");
+}
+
+export function TaskRunTable({ runId, isRunning }: TaskRunTableProps) {
+  const { data: taskRuns, isLoading, error } = useTaskRuns(runId, isRunning);
 
   if (isLoading) return <div className="py-4 text-center text-muted-foreground">加载中...</div>;
   if (error) return <div className="py-4 text-center text-destructive">加载失败: {error.message}</div>;
@@ -28,9 +34,12 @@ export function TaskRunTable({ runId }: TaskRunTableProps) {
         <TableRow>
           <TableHead>位置</TableHead>
           <TableHead>任务名称</TableHead>
-          <TableHead>任务 ID</TableHead>
+          <TableHead>类型</TableHead>
           <TableHead>状态</TableHead>
-          <TableHead>创建时间</TableHead>
+          <TableHead>重试</TableHead>
+          <TableHead>开始</TableHead>
+          <TableHead>结束</TableHead>
+          <TableHead>错误</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -38,10 +47,15 @@ export function TaskRunTable({ runId }: TaskRunTableProps) {
           <TableRow key={tr.id}>
             <TableCell className="text-muted-foreground">{tr.position}</TableCell>
             <TableCell className="font-medium">{tr.taskName}</TableCell>
-            <TableCell className="font-mono text-xs">{tr.taskId}</TableCell>
+            <TableCell className="font-mono text-xs text-muted-foreground">{tr.taskType}</TableCell>
             <TableCell><TaskRunStatusBadge status={tr.status} /></TableCell>
             <TableCell className="text-muted-foreground">
-              {new Date(tr.createdAt).toLocaleString("zh-CN")}
+              {tr.retryCount}/{tr.maxRetries}
+            </TableCell>
+            <TableCell className="text-muted-foreground">{formatInstant(tr.startedAt)}</TableCell>
+            <TableCell className="text-muted-foreground">{formatInstant(tr.finishedAt)}</TableCell>
+            <TableCell className="max-w-xs truncate text-xs text-destructive" title={tr.errorMessage ?? ""}>
+              {tr.errorMessage ?? "—"}
             </TableCell>
           </TableRow>
         ))}

@@ -51,6 +51,7 @@ GraphPilot/
     graphpilot-adapter-worker-spring/    # Spring 事件胶水（worker 核心的 Spring 托管适配）
     graphpilot-adapter-worker-micronaut/ # Micronaut 事件胶水 PoC（验证 worker 核心可移植）
     graphpilot-bootstrap-spring/         # Spring Boot 组装模块
+    graphpilot-bootstrap-micronaut/      # Micronaut 端到端运行时 PoC
   docs/
     product/
     architecture/

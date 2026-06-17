@@ -32,7 +32,7 @@ graphpilot-bootstrap-spring      (wires glue + core into runtime)
 ## 影响
 
 - Worker 核心逻辑可在脱离 Spring 的情况下测试与复用；`dependency:tree` 实测仅含 application/domain + junit/assertj。
-- 在 Micronaut 上托管 worker 的可行性已由 `graphpilot-adapter-worker-micronaut` PoC 验证：新增一个 Micronaut 事件胶水模块（`MicronautEventPublisher` 实现 `EventPublisherPort` + `WorkflowRunEventListener` 实现 `ApplicationEventListener`），核心 handlers/registry 与 `ExecuteWorkflowRunUseCase` 直接复用。该 PoC 仅编译期校验与单元测试，未接入完整 Micronaut runtime。
+- 在 Micronaut 上托管 worker 的可行性已由两层 PoC 验证：`graphpilot-adapter-worker-micronaut` 提供事件胶水（`MicronautEventPublisher` 实现 `EventPublisherPort` + `WorkflowRunEventListener` 实现 `ApplicationEventListener`），`graphpilot-bootstrap-micronaut` 提供端到端运行时 PoC（in-memory persistence + Micronaut HTTP + 同一份 worker core），E2E 测试覆盖 create/activate/trigger/query 并验证 DAG 执行至 SUCCEEDED 与 task output 持久化。
 - 跨进程部署时，出站端口 `EventPublisherPort` 已抽象发布侧；订阅侧可由独立 runtime 轮询 `findByStatus(PENDING)` 驱动，无需走 Spring 事件总线。
 - 多了 Maven 模块（worker 核心与可选的 Micronaut 胶水），reactor 构建步骤增加，但模块边界强化了 ADR 0003 的依赖方向约束。
 - Spring 适配器失去对 handler 实现的本地引用，bootstrap 通过依赖 worker 核心模块间接获得 handler 类，装配点集中在 `WorkerAssemblyConfiguration`。

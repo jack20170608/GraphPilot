@@ -38,9 +38,10 @@ bootstrap -> adapters -> application -> domain
 - `graphpilot-adapter-worker-micronaut` — Micronaut 事件胶水 PoC：与 Spring 胶水对等，复用同一份框架中立 worker 核心（`MicronautEventPublisher` + `WorkflowRunEventListener`），验证 worker 核心可移植到 Micronaut runtime（ADR 0004）。
 - 未来 adapters 可能包括 Spring Security、Quartz scheduling、Redis locks/events、Kubernetes workers、Docker workers 或其它 persistence implementations。
 
-### Bootstrap Module
+### Bootstrap Modules
 
 - `graphpilot-bootstrap-spring` — 负责把选定 adapters 装配为 Spring Boot application。默认 profile 装配 Spring Web adapter 与 in-memory persistence adapter，使 Workflow API 可在无数据库配置时本地运行；`postgres` profile 装配 PostgreSQL/MyBatis/Flyway 持久化能力，并要求显式提供 PostgreSQL 连接环境变量。
+- `graphpilot-bootstrap-micronaut` — Micronaut 端到端运行时 PoC，装配 in-memory persistence adapter、框架中立 worker 核心与 Micronaut worker 胶水，并暴露最小 HTTP API。E2E 测试覆盖 create/activate/trigger/query，证明同一份 application/domain/worker core 可在非 Spring runtime 下完成 DAG 执行并持久化 task output。
 
 ## 前端架构
 

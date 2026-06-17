@@ -22,6 +22,7 @@
         <module>graphpilot-adapter-worker-spring</module>
         <module>graphpilot-adapter-worker-micronaut</module>
         <module>graphpilot-bootstrap-spring</module>
+        <module>graphpilot-bootstrap-micronaut</module>
     </modules>
 
     <properties>
@@ -31,7 +32,7 @@
         <spring-boot.version>3.3.5</spring-boot.version>
         <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
         <micronaut.version>4.7.6</micronaut.version>
-        <micronaut.validation.version>4.8.0</micronaut.validation.version>
+        <micronaut.core.version>4.7.14</micronaut.core.version>
         <junit-jupiter.version>5.10.5</junit-jupiter.version>
         <assertj.version>3.26.3</assertj.version>
         <mockito.version>5.12.0</mockito.version>

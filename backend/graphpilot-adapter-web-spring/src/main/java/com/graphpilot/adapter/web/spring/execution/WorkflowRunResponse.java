@@ -7,13 +7,17 @@ public record WorkflowRunResponse(
         String id,
         String workflowId,
         String status,
-        Instant triggeredAt) {
+        Instant triggeredAt,
+        Instant startedAt,
+        Instant finishedAt) {
 
     static WorkflowRunResponse from(WorkflowRun workflowRun) {
         return new WorkflowRunResponse(
                 workflowRun.id().value(),
                 workflowRun.workflowId().value(),
                 workflowRun.status().name(),
-                workflowRun.triggeredAt());
+                workflowRun.triggeredAt(),
+                workflowRun.startedAt(),
+                workflowRun.finishedAt());
     }
 }

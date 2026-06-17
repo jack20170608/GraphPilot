@@ -8,8 +8,14 @@ public record TaskRunResponse(
         String workflowRunId,
         String taskId,
         String taskName,
+        String taskType,
         String status,
         int position,
+        int retryCount,
+        int maxRetries,
+        String errorMessage,
+        Instant startedAt,
+        Instant finishedAt,
         Instant createdAt) {
 
     static TaskRunResponse from(TaskRun taskRun) {
@@ -18,8 +24,14 @@ public record TaskRunResponse(
                 taskRun.workflowRunId().value(),
                 taskRun.taskId().value(),
                 taskRun.taskName(),
+                taskRun.taskType(),
                 taskRun.status().name(),
                 taskRun.position(),
+                taskRun.retryCount(),
+                taskRun.maxRetries(),
+                taskRun.errorMessage(),
+                taskRun.startedAt(),
+                taskRun.finishedAt(),
                 taskRun.createdAt());
     }
 }

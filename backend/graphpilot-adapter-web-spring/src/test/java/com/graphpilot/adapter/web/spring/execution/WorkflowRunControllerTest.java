@@ -132,9 +132,40 @@ class WorkflowRunControllerTest {
                 .andExpect(jsonPath("$.id").value("run-1"))
                 .andExpect(jsonPath("$.workflowId").value("workflow-1"))
                 .andExpect(jsonPath("$.status").value("SUCCEEDED"))
-                .andExpect(jsonPath("$.triggeredAt").value("2026-06-14T00:00:00Z"));
+                .andExpect(jsonPath("$.triggeredAt").value("2026-06-14T00:00:00Z"))
+                .andExpect(jsonPath("$.startedAt").doesNotExist())
+                .andExpect(jsonPath("$.finishedAt").doesNotExist());
 
         assertThat(queryWorkflowRunUseCase.lastWorkflowRunId()).isEqualTo(WorkflowRunId.of("run-1"));
+    }
+
+    @Test
+    void taskRunsExposeExecutionDetail() throws Exception {
+        TaskRun executed = TaskRun.restore(
+                TaskRunId.of("task-run-1"),
+                WorkflowRunId.of("run-1"),
+                TaskId.of("extract"),
+                "Extract data",
+                "http",
+                TaskRunStatus.FAILED,
+                0,
+                2,
+                3,
+                "connection refused",
+                Instant.parse("2026-06-14T00:00:05Z"),
+                Instant.parse("2026-06-14T00:00:10Z"),
+                Instant.parse("2026-06-14T00:00:00Z"));
+        queryWorkflowRunUseCase.saveTaskRuns(WorkflowRunId.of("run-1"), List.of(executed));
+
+        mockMvc.perform(get("/api/workflow-runs/run-1/tasks"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].taskType").value("http"))
+                .andExpect(jsonPath("$[0].status").value("FAILED"))
+                .andExpect(jsonPath("$[0].retryCount").value(2))
+                .andExpect(jsonPath("$[0].maxRetries").value(3))
+                .andExpect(jsonPath("$[0].errorMessage").value("connection refused"))
+                .andExpect(jsonPath("$[0].startedAt").value("2026-06-14T00:00:05Z"))
+                .andExpect(jsonPath("$[0].finishedAt").value("2026-06-14T00:00:10Z"));
     }
 
     @Test
@@ -157,8 +188,11 @@ class WorkflowRunControllerTest {
                 .andExpect(jsonPath("$[0].workflowRunId").value("run-1"))
                 .andExpect(jsonPath("$[0].taskId").value("extract"))
                 .andExpect(jsonPath("$[0].taskName").value("Extract data"))
+                .andExpect(jsonPath("$[0].taskType").value("mock"))
                 .andExpect(jsonPath("$[0].status").value("PENDING"))
                 .andExpect(jsonPath("$[0].position").value(0))
+                .andExpect(jsonPath("$[0].retryCount").value(0))
+                .andExpect(jsonPath("$[0].maxRetries").value(3))
                 .andExpect(jsonPath("$[0].createdAt").value("2026-06-14T00:00:00Z"));
 
         assertThat(queryWorkflowRunUseCase.lastWorkflowRunId()).isEqualTo(WorkflowRunId.of("run-1"));

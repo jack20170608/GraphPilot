@@ -49,12 +49,14 @@ class WorkflowExecutionCoordinatorServiceTest {
     private FakeWorkflowRunRepository workflowRunRepository;
     private ConfigurableTaskHandler taskHandler;
     private TaskHandlerProvider taskHandlerProvider;
+    private RecordingBackoffStrategy backoffStrategy;
     private WorkflowExecutionCoordinatorService coordinator;
 
     @BeforeEach
     void setUp() {
         workflowRunRepository = new FakeWorkflowRunRepository();
         taskHandler = new ConfigurableTaskHandler();
+        backoffStrategy = new RecordingBackoffStrategy();
         taskHandlerProvider = new TaskHandlerProvider() {
             @Override
             public TaskHandler getHandler(String taskType) {
@@ -70,7 +72,8 @@ class WorkflowExecutionCoordinatorServiceTest {
                 workflowRepository,
                 workflowRunRepository,
                 taskHandlerProvider,
-                fixedClock());
+                fixedClock(),
+                backoffStrategy);
     }
 
     @Test
@@ -239,6 +242,40 @@ class WorkflowExecutionCoordinatorServiceTest {
                 TaskRunStatus.SKIPPED, TaskRunStatus.SKIPPED);
         assertThat(workflowRunRepository.findRunById(runId).orElseThrow().status())
                 .isEqualTo(WorkflowRunStatus.FAILED);
+    }
+
+    @Test
+    void executeInvokesBackoffBeforeEachRetryWithAscendingAttemptNumber() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "task-1", TaskRunStatus.PENDING, 0));
+        givenWorkflow(workflowId, singleTaskDag("task-1"));
+        // Fail three retries then succeed: attempts 1,2,3 fail, attempt 4 succeeds.
+        taskHandler.failThenSucceed(3);
+
+        coordinator.execute(runId);
+
+        // Backoff is awaited before each retry, with the 1-based attempt number that is
+        // about to run (retryCount after increment).
+        assertThat(backoffStrategy.awaitedAttempts).containsExactly(1, 2, 3);
+        assertThat(taskHandler.invocations).hasSize(4);
+        assertThat(workflowRunRepository.findRunById(runId).orElseThrow().status())
+                .isEqualTo(WorkflowRunStatus.SUCCEEDED);
+    }
+
+    @Test
+    void executeDoesNotBackoffWhenTaskSucceedsFirstTime() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "task-1", TaskRunStatus.PENDING, 0));
+        givenWorkflow(workflowId, singleTaskDag("task-1"));
+        taskHandler.alwaysSucceed();
+
+        coordinator.execute(runId);
+
+        assertThat(backoffStrategy.awaitedAttempts).isEmpty();
     }
 
     private List<TaskRunStatus> taskRunStatuses(WorkflowRunId runId) {
@@ -434,6 +471,20 @@ class WorkflowExecutionCoordinatorServiceTest {
             invocations.add(taskRun.taskId().value());
             invocationOrder.add(taskRun.taskId().value());
             return Objects.requireNonNull(behavior.apply(taskRun), "behavior must not return null");
+        }
+    }
+
+    /**
+     * Backoff strategy that records each awaited attempt without sleeping, so retry
+     * backoff timing is testable without real delays.
+     */
+    private static final class RecordingBackoffStrategy implements BackoffStrategy {
+
+        private final List<Integer> awaitedAttempts = new ArrayList<>();
+
+        @Override
+        public void awaitRetry(int attemptNumber) {
+            awaitedAttempts.add(attemptNumber);
         }
     }
 }

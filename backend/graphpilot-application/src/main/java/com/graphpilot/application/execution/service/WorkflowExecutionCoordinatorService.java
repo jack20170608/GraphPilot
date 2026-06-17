@@ -35,16 +35,27 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
     private final WorkflowRunRepository workflowRunRepository;
     private final TaskHandlerProvider taskHandlerProvider;
     private final ClockPort clock;
+    private final BackoffStrategy backoffStrategy;
 
     public WorkflowExecutionCoordinatorService(
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
             TaskHandlerProvider taskHandlerProvider,
             ClockPort clock) {
+        this(workflowRepository, workflowRunRepository, taskHandlerProvider, clock, attemptNumber -> { });
+    }
+
+    public WorkflowExecutionCoordinatorService(
+            WorkflowRepository workflowRepository,
+            WorkflowRunRepository workflowRunRepository,
+            TaskHandlerProvider taskHandlerProvider,
+            ClockPort clock,
+            BackoffStrategy backoffStrategy) {
         this.workflowRepository = Objects.requireNonNull(workflowRepository, "workflowRepository must not be null");
         this.workflowRunRepository = Objects.requireNonNull(workflowRunRepository, "workflowRunRepository must not be null");
         this.taskHandlerProvider = Objects.requireNonNull(taskHandlerProvider, "taskHandlerProvider must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
+        this.backoffStrategy = Objects.requireNonNull(backoffStrategy, "backoffStrategy must not be null");
     }
 
     @Override
@@ -200,10 +211,12 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
                 .withErrorMessage(errorMessage);
 
         if (result.isFailure() && finishedTaskRun.canRetry()) {
-            // Reset to PENDING for re-execution in a later wave; retryCount is incremented
-            // so retries are bounded by maxRetries.
-            workflowRunRepository.updateTaskRunStatus(
-                    taskRun.workflowRunId(), finishedTaskRun.withIncrementedRetry());
+            // Back off before the retry, then reset to PENDING for re-execution in a
+            // later wave. retryCount is incremented so retries are bounded by maxRetries;
+            // the new retryCount is the 1-based attempt number about to run.
+            TaskRun retried = finishedTaskRun.withIncrementedRetry();
+            backoffStrategy.awaitRetry(retried.retryCount());
+            workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), retried);
         } else {
             workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), finishedTaskRun);
         }

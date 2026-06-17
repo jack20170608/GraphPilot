@@ -205,10 +205,12 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         String errorMessage = result.isFailure()
                 ? result.error().orElse(result.errorMessage().orElse("Unknown error"))
                 : null;
+        String output = result.isSuccess() ? result.output().orElse(null) : null;
         TaskRun finishedTaskRun = taskRun.withStatus(result.status())
                 .withStartedAt(startedAt)
                 .withFinishedAt(now)
-                .withErrorMessage(errorMessage);
+                .withErrorMessage(errorMessage)
+                .withOutput(output);
 
         if (result.isFailure() && finishedTaskRun.canRetry()) {
             // Back off before the retry, then reset to PENDING for re-execution in a

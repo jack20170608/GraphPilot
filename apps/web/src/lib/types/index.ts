@@ -67,6 +67,7 @@ export interface TaskRun {
   retryCount: number;
   maxRetries: number;
   errorMessage?: string;
+  output?: string;
   startedAt?: string;
   finishedAt?: string;
   createdAt: string;

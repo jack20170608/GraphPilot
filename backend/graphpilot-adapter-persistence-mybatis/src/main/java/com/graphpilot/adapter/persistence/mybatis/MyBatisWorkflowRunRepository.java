@@ -87,6 +87,7 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
                 taskRun.id().value(),
                 taskRun.status().name(),
                 taskRun.errorMessage(),
+                taskRun.output(),
                 taskRun.startedAt(),
                 taskRun.finishedAt(),
                 taskRun.retryCount());
@@ -136,13 +137,20 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
     }
 
     private static TaskRunRow toTaskRunRow(TaskRun taskRun) {
-        return TaskRunRow.of(
+        return new TaskRunRow(
                 taskRun.id().value(),
                 taskRun.workflowRunId().value(),
                 taskRun.taskId().value(),
                 taskRun.taskName(),
+                taskRun.taskType(),
                 taskRun.status().name(),
                 taskRun.position(),
+                taskRun.retryCount(),
+                taskRun.maxRetries(),
+                taskRun.errorMessage(),
+                taskRun.output(),
+                taskRun.startedAt(),
+                taskRun.finishedAt(),
                 taskRun.createdAt());
     }
 
@@ -160,8 +168,15 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
                 WorkflowRunId.of(taskRunRow.workflowRunId()),
                 TaskId.of(taskRunRow.taskId()),
                 taskRunRow.taskName(),
+                taskRunRow.taskType(),
                 TaskRunStatus.valueOf(taskRunRow.status()),
                 taskRunRow.position(),
+                taskRunRow.retryCount(),
+                taskRunRow.maxRetries(),
+                taskRunRow.errorMessage(),
+                taskRunRow.output(),
+                taskRunRow.startedAt(),
+                taskRunRow.finishedAt(),
                 taskRunRow.createdAt());
     }
 }

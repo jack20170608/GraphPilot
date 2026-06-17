@@ -31,7 +31,7 @@ public interface TaskRunRepository {
      * Update task run status with execution result.
      */
     void updateStatus(TaskRunId taskRunId, TaskRunStatus status, String errorMessage,
-            java.time.Instant startedAt, java.time.Instant finishedAt, int retryCount);
+            String output, java.time.Instant startedAt, java.time.Instant finishedAt, int retryCount);
 
     /**
      * Count completed (SUCCEEDED or FAILED) tasks for a workflow run.

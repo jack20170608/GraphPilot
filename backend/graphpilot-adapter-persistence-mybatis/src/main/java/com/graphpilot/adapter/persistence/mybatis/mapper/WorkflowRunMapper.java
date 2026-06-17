@@ -26,6 +26,7 @@ public interface WorkflowRunMapper {
     void updateTaskRunStatus(@Param("taskRunId") String taskRunId,
             @Param("status") String status,
             @Param("errorMessage") String errorMessage,
+            @Param("output") String output,
             @Param("startedAt") java.time.Instant startedAt,
             @Param("finishedAt") java.time.Instant finishedAt,
             @Param("retryCount") int retryCount);

@@ -14,6 +14,7 @@ public record TaskRunResponse(
         int retryCount,
         int maxRetries,
         String errorMessage,
+        String output,
         Instant startedAt,
         Instant finishedAt,
         Instant createdAt) {
@@ -30,6 +31,7 @@ public record TaskRunResponse(
                 taskRun.retryCount(),
                 taskRun.maxRetries(),
                 taskRun.errorMessage(),
+                taskRun.output(),
                 taskRun.startedAt(),
                 taskRun.finishedAt(),
                 taskRun.createdAt());

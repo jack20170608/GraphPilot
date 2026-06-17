@@ -39,6 +39,7 @@ export function TaskRunTable({ runId, isRunning }: TaskRunTableProps) {
           <TableHead>重试</TableHead>
           <TableHead>开始</TableHead>
           <TableHead>结束</TableHead>
+          <TableHead>输出</TableHead>
           <TableHead>错误</TableHead>
         </TableRow>
       </TableHeader>
@@ -54,6 +55,9 @@ export function TaskRunTable({ runId, isRunning }: TaskRunTableProps) {
             </TableCell>
             <TableCell className="text-muted-foreground">{formatInstant(tr.startedAt)}</TableCell>
             <TableCell className="text-muted-foreground">{formatInstant(tr.finishedAt)}</TableCell>
+            <TableCell className="max-w-xs truncate text-xs text-muted-foreground" title={tr.output ?? ""}>
+              {tr.output ?? "—"}
+            </TableCell>
             <TableCell className="max-w-xs truncate text-xs text-destructive" title={tr.errorMessage ?? ""}>
               {tr.errorMessage ?? "—"}
             </TableCell>

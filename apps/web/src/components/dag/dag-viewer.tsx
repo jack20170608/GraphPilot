@@ -28,16 +28,42 @@ const statusColors: Record<TaskRunStatus, string> = {
   SKIPPED: "#a1a1aa",
 };
 
+const statusLabels: Record<TaskRunStatus, string> = {
+  PENDING: "等待",
+  RUNNING: "运行中",
+  SUCCEEDED: "成功",
+  FAILED: "失败",
+  SKIPPED: "跳过",
+};
+
 function TaskNode({ data }: { data: { label: string; status?: TaskRunStatus } }) {
   const borderColor = data.status ? statusColors[data.status] : "#e2e8f0";
+  const isRunning = data.status === "RUNNING";
   return (
     <div
-      className="px-4 py-2 rounded-lg border-2 bg-card shadow-sm text-sm font-medium"
-      style={{ borderColor }}
+      className="min-w-[140px] px-4 py-2 rounded-lg border-2 bg-card shadow-sm text-sm font-medium"
+      style={{ borderColor, boxShadow: isRunning ? `0 0 0 3px ${borderColor}33` : undefined }}
     >
-      {data.label}
+      <div>{data.label}</div>
+      {data.status && (
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span
+            className="inline-block size-2 rounded-full"
+            style={{ backgroundColor: borderColor }}
+          />
+          {statusLabels[data.status]}
+        </div>
+      )}
     </div>
   );
+}
+
+function edgeColor(from?: TaskRunStatus, to?: TaskRunStatus): string | undefined {
+  // Highlight edges leading out of a succeeded task or into a running task.
+  if (from === "SUCCEEDED") return statusColors.SUCCEEDED;
+  if (to === "FAILED" || from === "FAILED") return statusColors.FAILED;
+  if (to === "RUNNING" || from === "RUNNING") return statusColors.RUNNING;
+  return undefined;
 }
 
 const nodeTypes: NodeTypes = {
@@ -57,13 +83,19 @@ export function DagViewer({ tasks, edges, taskStatuses }: DagViewerProps) {
 
   const rfEdges: Edge[] = useMemo(
     () =>
-      edges.map((e, i) => ({
-        id: `e-${i}`,
-        source: e.fromTaskId,
-        target: e.toTaskId,
-        markerEnd: { type: MarkerType.ArrowClosed },
-        animated: taskStatuses?.[e.fromTaskId] === "RUNNING" || taskStatuses?.[e.toTaskId] === "RUNNING",
-      })),
+      edges.map((e, i) => {
+        const from = taskStatuses?.[e.fromTaskId];
+        const to = taskStatuses?.[e.toTaskId];
+        const color = edgeColor(from, to);
+        return {
+          id: `e-${i}`,
+          source: e.fromTaskId,
+          target: e.toTaskId,
+          markerEnd: { type: MarkerType.ArrowClosed, color },
+          style: color ? { stroke: color } : undefined,
+          animated: from === "RUNNING" || to === "RUNNING",
+        };
+      }),
     [edges, taskStatuses],
   );
 

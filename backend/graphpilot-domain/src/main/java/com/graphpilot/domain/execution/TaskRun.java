@@ -16,13 +16,14 @@ public record TaskRun(
         int retryCount,
         int maxRetries,
         String errorMessage,
+        String output,
         Instant startedAt,
         Instant finishedAt,
         Instant createdAt) {
 
     public TaskRun(TaskRunId id, WorkflowRunId workflowRunId, TaskId taskId, String taskName,
             TaskRunStatus status, int position, Instant createdAt) {
-        this(id, workflowRunId, taskId, taskName, "mock", status, position, 0, 3, null, null, null, createdAt);
+        this(id, workflowRunId, taskId, taskName, "mock", status, position, 0, 3, null, null, null, null, createdAt);
     }
 
     public TaskRun {
@@ -59,9 +60,33 @@ public record TaskRun(
         return restore(
                 id, workflowRunId, task.id(), task.name(), type,
                 TaskRunStatus.PENDING, position,
-                0, 3, null, null, null, createdAt);
+                0, 3, null, null, null, null, createdAt);
     }
 
+    public static TaskRun restore(
+            TaskRunId id,
+            WorkflowRunId workflowRunId,
+            TaskId taskId,
+            String taskName,
+            String taskType,
+            TaskRunStatus status,
+            int position,
+            int retryCount,
+            int maxRetries,
+            String errorMessage,
+            String output,
+            Instant startedAt,
+            Instant finishedAt,
+            Instant createdAt) {
+        return new TaskRun(
+                id, workflowRunId, taskId, taskName, taskType,
+                status, position, retryCount, maxRetries,
+                errorMessage, output, startedAt, finishedAt, createdAt);
+    }
+
+    /**
+     * Backward-compatible restore method (without taskType, output, and retry fields).
+     */
     public static TaskRun restore(
             TaskRunId id,
             WorkflowRunId workflowRunId,
@@ -76,10 +101,9 @@ public record TaskRun(
             Instant startedAt,
             Instant finishedAt,
             Instant createdAt) {
-        return new TaskRun(
-                id, workflowRunId, taskId, taskName, taskType,
-                status, position, retryCount, maxRetries,
-                errorMessage, startedAt, finishedAt, createdAt);
+        return restore(id, workflowRunId, taskId, taskName, taskType,
+                status, position, retryCount, maxRetries, errorMessage,
+                null, startedAt, finishedAt, createdAt);
     }
 
     /**
@@ -94,7 +118,7 @@ public record TaskRun(
             int position,
             Instant createdAt) {
         return restore(id, workflowRunId, taskId, taskName, "mock",
-                status, position, 0, 3, null, null, null, createdAt);
+                status, position, 0, 3, null, null, null, null, createdAt);
     }
 
     public boolean canRetry() {
@@ -103,31 +127,37 @@ public record TaskRun(
 
     public TaskRun withStatus(TaskRunStatus newStatus) {
         return restore(id, workflowRunId, taskId, taskName, taskType,
-                newStatus, position, retryCount, maxRetries, errorMessage,
+                newStatus, position, retryCount, maxRetries, errorMessage, output,
                 startedAt, finishedAt, createdAt);
     }
 
     public TaskRun withStartedAt(Instant startedAt) {
         return restore(id, workflowRunId, taskId, taskName, taskType,
-                status, position, retryCount, maxRetries, errorMessage,
+                status, position, retryCount, maxRetries, errorMessage, output,
                 startedAt, finishedAt, createdAt);
     }
 
     public TaskRun withFinishedAt(Instant finishedAt) {
         return restore(id, workflowRunId, taskId, taskName, taskType,
-                status, position, retryCount, maxRetries, errorMessage,
+                status, position, retryCount, maxRetries, errorMessage, output,
                 startedAt, finishedAt, createdAt);
     }
 
     public TaskRun withErrorMessage(String error) {
         return restore(id, workflowRunId, taskId, taskName, taskType,
-                status, position, retryCount, maxRetries, error,
+                status, position, retryCount, maxRetries, error, output,
+                startedAt, finishedAt, createdAt);
+    }
+
+    public TaskRun withOutput(String output) {
+        return restore(id, workflowRunId, taskId, taskName, taskType,
+                status, position, retryCount, maxRetries, errorMessage, output,
                 startedAt, finishedAt, createdAt);
     }
 
     public TaskRun withIncrementedRetry() {
         return restore(id, workflowRunId, taskId, taskName, taskType,
                 TaskRunStatus.PENDING, position, retryCount + 1, maxRetries,
-                null, null, null, createdAt);
+                null, null, null, null, createdAt);
     }
 }

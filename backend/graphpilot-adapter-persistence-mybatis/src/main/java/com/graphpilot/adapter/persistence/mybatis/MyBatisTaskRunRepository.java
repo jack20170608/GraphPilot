@@ -51,11 +51,12 @@ public class MyBatisTaskRunRepository implements TaskRunRepository {
     @Override
     @Transactional
     public void updateStatus(TaskRunId taskRunId, TaskRunStatus status, String errorMessage,
-            Instant startedAt, Instant finishedAt, int retryCount) {
+            String output, Instant startedAt, Instant finishedAt, int retryCount) {
         workflowRunMapper.updateTaskRunStatus(
                 taskRunId.value(),
                 status.name(),
                 errorMessage,
+                output,
                 startedAt,
                 finishedAt,
                 retryCount);
@@ -84,8 +85,15 @@ public class MyBatisTaskRunRepository implements TaskRunRepository {
                 WorkflowRunId.of(row.workflowRunId()),
                 TaskId.of(row.taskId()),
                 row.taskName(),
+                row.taskType(),
                 TaskRunStatus.valueOf(row.status()),
                 row.position(),
+                row.retryCount(),
+                row.maxRetries(),
+                row.errorMessage(),
+                row.output(),
+                row.startedAt(),
+                row.finishedAt(),
                 row.createdAt());
     }
 }

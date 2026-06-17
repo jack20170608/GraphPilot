@@ -14,6 +14,7 @@ public record TaskRunRow(
         int retryCount,
         int maxRetries,
         String errorMessage,
+        String output,
         Instant startedAt,
         Instant finishedAt,
         Instant createdAt) {
@@ -29,13 +30,13 @@ public record TaskRunRow(
     }
 
     /**
-     * Backward-compatible constructor (without new fields).
+     * Backward-compatible factory (without execution fields).
      */
     public static TaskRunRow of(
             String id, String workflowRunId, String taskId, String taskName,
             String status, int position, Instant createdAt) {
         return new TaskRunRow(
                 id, workflowRunId, taskId, taskName, "mock",
-                status, position, 0, 3, null, null, null, createdAt);
+                status, position, 0, 3, null, null, null, null, createdAt);
     }
 }

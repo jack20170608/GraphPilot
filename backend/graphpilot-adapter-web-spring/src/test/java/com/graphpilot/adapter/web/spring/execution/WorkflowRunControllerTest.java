@@ -152,10 +152,26 @@ class WorkflowRunControllerTest {
                 2,
                 3,
                 "connection refused",
+                null,
                 Instant.parse("2026-06-14T00:00:05Z"),
                 Instant.parse("2026-06-14T00:00:10Z"),
                 Instant.parse("2026-06-14T00:00:00Z"));
-        queryWorkflowRunUseCase.saveTaskRuns(WorkflowRunId.of("run-1"), List.of(executed));
+        TaskRun succeeded = TaskRun.restore(
+                TaskRunId.of("task-run-2"),
+                WorkflowRunId.of("run-1"),
+                TaskId.of("transform"),
+                "Transform data",
+                "mock",
+                TaskRunStatus.SUCCEEDED,
+                0,
+                0,
+                3,
+                null,
+                "transformed-payload",
+                Instant.parse("2026-06-14T00:00:11Z"),
+                Instant.parse("2026-06-14T00:00:12Z"),
+                Instant.parse("2026-06-14T00:00:00Z"));
+        queryWorkflowRunUseCase.saveTaskRuns(WorkflowRunId.of("run-1"), List.of(executed, succeeded));
 
         mockMvc.perform(get("/api/workflow-runs/run-1/tasks"))
                 .andExpect(status().isOk())
@@ -164,8 +180,11 @@ class WorkflowRunControllerTest {
                 .andExpect(jsonPath("$[0].retryCount").value(2))
                 .andExpect(jsonPath("$[0].maxRetries").value(3))
                 .andExpect(jsonPath("$[0].errorMessage").value("connection refused"))
+                .andExpect(jsonPath("$[0].output").doesNotExist())
                 .andExpect(jsonPath("$[0].startedAt").value("2026-06-14T00:00:05Z"))
-                .andExpect(jsonPath("$[0].finishedAt").value("2026-06-14T00:00:10Z"));
+                .andExpect(jsonPath("$[0].finishedAt").value("2026-06-14T00:00:10Z"))
+                .andExpect(jsonPath("$[1].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$[1].output").value("transformed-payload"));
     }
 
     @Test

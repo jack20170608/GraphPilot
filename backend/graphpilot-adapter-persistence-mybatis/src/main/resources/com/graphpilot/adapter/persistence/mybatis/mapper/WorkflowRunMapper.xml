@@ -28,6 +28,7 @@
             <arg column="retry_count" javaType="int" />
             <arg column="max_retries" javaType="int" />
             <arg column="error_message" javaType="java.lang.String" />
+            <arg column="output_data" javaType="java.lang.String" />
             <arg column="started_at" javaType="java.time.Instant" />
             <arg column="finished_at" javaType="java.time.Instant" />
             <arg column="created_at" javaType="java.time.Instant" />
@@ -58,6 +59,7 @@
             <arg column="retry_count" javaType="int" />
             <arg column="max_retries" javaType="int" />
             <arg column="error_message" javaType="java.lang.String" />
+            <arg column="output_data" javaType="java.lang.String" />
             <arg column="started_at" javaType="java.time.Instant" />
             <arg column="finished_at" javaType="java.time.Instant" />
             <arg column="created_at" javaType="java.time.Instant" />
@@ -70,10 +72,10 @@
     </insert>
 
     <insert id="insertTaskRuns">
-        insert into task_runs (id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, started_at, finished_at, created_at)
+        insert into task_runs (id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, output_data, started_at, finished_at, created_at)
         values
         <foreach collection="taskRuns" item="taskRun" separator=",">
-            (#{taskRun.id}, #{taskRun.workflowRunId}, #{taskRun.taskId}, #{taskRun.taskName}, #{taskRun.taskType}, #{taskRun.status}, #{taskRun.position}, #{taskRun.retryCount}, #{taskRun.maxRetries}, #{taskRun.errorMessage}, #{taskRun.startedAt}, #{taskRun.finishedAt}, #{taskRun.createdAt})
+            (#{taskRun.id}, #{taskRun.workflowRunId}, #{taskRun.taskId}, #{taskRun.taskName}, #{taskRun.taskType}, #{taskRun.status}, #{taskRun.position}, #{taskRun.retryCount}, #{taskRun.maxRetries}, #{taskRun.errorMessage}, #{taskRun.output}, #{taskRun.startedAt}, #{taskRun.finishedAt}, #{taskRun.createdAt})
         </foreach>
     </insert>
 
@@ -92,7 +94,7 @@
     </select>
 
     <select id="findTaskRunsByRunId" resultMap="TaskRunRowResultMap">
-        select id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, started_at, finished_at, created_at
+        select id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, output_data, started_at, finished_at, created_at
         from task_runs
         where workflow_run_id = #{workflowRunId}
         order by position, task_id
@@ -100,7 +102,7 @@
 
     <!-- Find pending tasks that can be executed (dependencies satisfied via position order) -->
     <select id="findPendingTaskRunsByRunId" resultMap="TaskRunRowResultMap">
-        select id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, started_at, finished_at, created_at
+        select id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, output_data, started_at, finished_at, created_at
         from task_runs
         where workflow_run_id = #{workflowRunId} and status = 'PENDING'
         order by position, task_id
@@ -110,6 +112,7 @@
         update task_runs
         set status = #{status},
             error_message = #{errorMessage},
+            output_data = #{output},
             started_at = #{startedAt},
             finished_at = #{finishedAt},
             retry_count = #{retryCount}

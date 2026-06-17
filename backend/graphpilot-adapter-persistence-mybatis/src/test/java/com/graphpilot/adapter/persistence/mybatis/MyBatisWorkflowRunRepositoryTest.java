@@ -114,7 +114,7 @@ class MyBatisWorkflowRunRepositoryTest {
 
         @Override
         public void updateTaskRunStatus(String taskRunId, String status, String errorMessage,
-                Instant startedAt, Instant finishedAt, int retryCount) {
+                String output, Instant startedAt, Instant finishedAt, int retryCount) {
             // no-op for test
         }
 

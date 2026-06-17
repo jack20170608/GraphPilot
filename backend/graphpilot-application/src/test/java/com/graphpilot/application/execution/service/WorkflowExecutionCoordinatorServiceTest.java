@@ -151,6 +151,39 @@ class WorkflowExecutionCoordinatorServiceTest {
     }
 
     @Test
+    void executePersistsHandlerOutputOnSuccess() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "task-1", TaskRunStatus.PENDING, 0));
+        givenWorkflow(workflowId, singleTaskDag("task-1"));
+        taskHandler.succeedWith("computed-result");
+
+        coordinator.execute(runId);
+
+        TaskRun finished = workflowRunRepository.findTaskRunsByRunId(runId).get(0);
+        assertThat(finished.status()).isEqualTo(TaskRunStatus.SUCCEEDED);
+        assertThat(finished.output()).isEqualTo("computed-result");
+    }
+
+    @Test
+    void executeDoesNotPersistOutputOnFailure() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "task-1", TaskRunStatus.PENDING, 0));
+        givenWorkflow(workflowId, singleTaskDag("task-1"));
+        taskHandler.alwaysFail();
+
+        coordinator.execute(runId);
+
+        TaskRun finished = workflowRunRepository.findTaskRunsByRunId(runId).get(0);
+        assertThat(finished.status()).isEqualTo(TaskRunStatus.FAILED);
+        assertThat(finished.output()).isNull();
+        assertThat(finished.errorMessage()).isNotNull();
+    }
+
+    @Test
     void executeCascadesSkippedToDependentsWhenRootTaskFailsTerminally() {
         WorkflowRunId runId = WorkflowRunId.of("run-1");
         WorkflowId workflowId = WorkflowId.of("workflow-1");
@@ -434,6 +467,10 @@ class WorkflowExecutionCoordinatorServiceTest {
 
         void alwaysSucceed() {
             behavior = tr -> TaskResult.success("done");
+        }
+
+        void succeedWith(String output) {
+            behavior = tr -> TaskResult.success(output);
         }
 
         void alwaysFail() {

@@ -22,6 +22,7 @@ import org.springframework.web.util.UriUtils;
 class WorkflowRunController {
 
     private static final int MAX_LIST_LIMIT = 100;
+    private static final int MAX_TIMELINE_LIMIT = 500;
 
     private final TriggerWorkflowRunUseCase triggerWorkflowRunUseCase;
     private final QueryWorkflowRunUseCase queryWorkflowRunUseCase;
@@ -72,10 +73,30 @@ class WorkflowRunController {
                 .toList());
     }
 
+    @GetMapping("/workflow-runs/{runId}/timeline")
+    ResponseEntity<List<TimelineEventResponse>> listTimeline(
+            @PathVariable("runId") String runId,
+            @RequestParam(name = "limit", defaultValue = "200") int limit) {
+        int boundedLimit = validateTimelineLimit(limit);
+        return ResponseEntity.ok(queryWorkflowRunUseCase
+                .findTimelineByRunId(workflowRunIdFrom(runId), boundedLimit)
+                .stream()
+                .map(TimelineEventResponse::from)
+                .toList());
+    }
+
     private static int validateListLimit(int limit) {
         if (limit <= 0 || limit > MAX_LIST_LIMIT) {
             throw new IllegalArgumentException(
                     "Workflow run list limit must be between 1 and " + MAX_LIST_LIMIT);
+        }
+        return limit;
+    }
+
+    private static int validateTimelineLimit(int limit) {
+        if (limit <= 0 || limit > MAX_TIMELINE_LIMIT) {
+            throw new IllegalArgumentException(
+                    "Timeline event query limit must be between 1 and " + MAX_TIMELINE_LIMIT);
         }
         return limit;
     }

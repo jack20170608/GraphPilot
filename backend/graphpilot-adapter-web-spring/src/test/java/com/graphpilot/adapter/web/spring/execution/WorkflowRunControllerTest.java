@@ -18,8 +18,11 @@ import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskRun;
 import com.graphpilot.domain.execution.TaskRunId;
 import com.graphpilot.domain.execution.TaskRunStatus;
+import com.graphpilot.domain.execution.TimelineEventId;
+import com.graphpilot.domain.execution.TimelineEventType;
 import com.graphpilot.domain.execution.WorkflowRun;
 import com.graphpilot.domain.execution.WorkflowRunId;
+import com.graphpilot.domain.execution.WorkflowRunTimelineEvent;
 import com.graphpilot.domain.execution.WorkflowRunStatus;
 import com.graphpilot.domain.execution.WorkflowRunTriggerException;
 import com.graphpilot.domain.workflow.WorkflowId;
@@ -188,6 +191,38 @@ class WorkflowRunControllerTest {
     }
 
     @Test
+    void listsTimelineForWorkflowRun() throws Exception {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        queryWorkflowRunUseCase.saveRun(workflowRun("run-1", "workflow-1", WorkflowRunStatus.SUCCEEDED));
+        queryWorkflowRunUseCase.saveTimeline(runId, List.of(
+                WorkflowRunTimelineEvent.runLevel(
+                        TimelineEventId.of("event-1"),
+                        runId,
+                        TimelineEventType.RUN_CREATED,
+                        "Workflow run created",
+                        Instant.parse("2026-06-14T00:00:00Z")),
+                WorkflowRunTimelineEvent.taskLevel(
+                        TimelineEventId.of("event-2"),
+                        runId,
+                        TaskRunId.of("task-run-1"),
+                        TaskId.of("extract"),
+                        TimelineEventType.TASK_SUCCEEDED,
+                        "Task extract succeeded",
+                        Instant.parse("2026-06-14T00:00:01Z"))));
+
+        mockMvc.perform(get("/api/workflow-runs/run-1/timeline"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("event-1"))
+                .andExpect(jsonPath("$[0].workflowRunId").value("run-1"))
+                .andExpect(jsonPath("$[0].type").value("RUN_CREATED"))
+                .andExpect(jsonPath("$[0].message").value("Workflow run created"))
+                .andExpect(jsonPath("$[0].occurredAt").value("2026-06-14T00:00:00Z"))
+                .andExpect(jsonPath("$[1].taskRunId").value("task-run-1"))
+                .andExpect(jsonPath("$[1].taskId").value("extract"))
+                .andExpect(jsonPath("$[1].type").value("TASK_SUCCEEDED"));
+    }
+
+    @Test
     void returnsNotFoundWhenWorkflowRunDoesNotExist() throws Exception {
         mockMvc.perform(get("/api/workflow-runs/missing-run"))
                 .andExpect(status().isNotFound())
@@ -289,6 +324,7 @@ class WorkflowRunControllerTest {
         private final Map<WorkflowRunId, WorkflowRun> runsById = new HashMap<>();
         private final Map<WorkflowId, List<WorkflowRun>> runsByWorkflowId = new HashMap<>();
         private final Map<WorkflowRunId, List<TaskRun>> tasksByRunId = new HashMap<>();
+        private final Map<WorkflowRunId, List<WorkflowRunTimelineEvent>> timelineByRunId = new HashMap<>();
         private WorkflowId lastWorkflowId;
         private WorkflowRunId lastWorkflowRunId;
         private int lastLimit;
@@ -304,6 +340,10 @@ class WorkflowRunControllerTest {
 
         void saveTaskRuns(WorkflowRunId workflowRunId, List<TaskRun> taskRuns) {
             tasksByRunId.put(workflowRunId, List.copyOf(taskRuns));
+        }
+
+        void saveTimeline(WorkflowRunId workflowRunId, List<WorkflowRunTimelineEvent> timelineEvents) {
+            timelineByRunId.put(workflowRunId, List.copyOf(timelineEvents));
         }
 
         WorkflowId lastWorkflowId() {
@@ -341,6 +381,15 @@ class WorkflowRunControllerTest {
         public List<TaskRun> findTaskRunsByRunId(WorkflowRunId workflowRunId) {
             lastWorkflowRunId = workflowRunId;
             return new ArrayList<>(tasksByRunId.getOrDefault(workflowRunId, List.of()));
+        }
+
+        @Override
+        public List<WorkflowRunTimelineEvent> findTimelineByRunId(WorkflowRunId workflowRunId, int limit) {
+            lastWorkflowRunId = workflowRunId;
+            lastLimit = limit;
+            return timelineByRunId.getOrDefault(workflowRunId, List.of()).stream()
+                    .limit(limit)
+                    .toList();
         }
     }
 }

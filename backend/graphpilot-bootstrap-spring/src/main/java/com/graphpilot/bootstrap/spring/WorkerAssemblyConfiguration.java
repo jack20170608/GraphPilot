@@ -8,6 +8,7 @@ import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.application.execution.service.FixedBackoffStrategy;
 import com.graphpilot.application.execution.service.ScanPendingWorkflowRunsService;
+import com.graphpilot.application.execution.service.TimelineRecorder;
 import com.graphpilot.application.execution.service.WorkflowExecutionCoordinatorService;
 import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
@@ -43,13 +44,15 @@ class WorkerAssemblyConfiguration {
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
             TaskHandlerProvider taskHandlerProvider,
-            ClockPort clock) {
+            ClockPort clock,
+            TimelineRecorder timelineRecorder) {
         return new WorkflowExecutionCoordinatorService(
                 workflowRepository,
                 workflowRunRepository,
                 taskHandlerProvider,
                 clock,
-                new FixedBackoffStrategy(Duration.ofSeconds(retryBackoffSeconds)));
+                new FixedBackoffStrategy(Duration.ofSeconds(retryBackoffSeconds)),
+                timelineRecorder);
     }
 
     @Bean

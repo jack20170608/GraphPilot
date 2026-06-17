@@ -2,6 +2,7 @@ package com.graphpilot.adapter.web.spring.workflow;
 
 import com.graphpilot.application.workflow.command.CreateWorkflowCommand;
 import com.graphpilot.domain.dag.DagEdge;
+import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.Map;
 
 record CreateWorkflowRequest(
         @NotBlank @Size(max = 120) String name,
@@ -31,10 +33,16 @@ record CreateWorkflowRequest(
 
     record TaskRequest(
             @NotBlank @Size(max = 80) String id,
-            @NotBlank @Size(max = 120) String name) {
+            @NotBlank @Size(max = 120) String name,
+            @Size(max = 40) String type,
+            Map<String, Object> config) {
 
         TaskDefinition toTaskDefinition() {
-            return new TaskDefinition(TaskId.of(id), name);
+            return new TaskDefinition(
+                    TaskId.of(id),
+                    name,
+                    type,
+                    config == null ? TaskConfig.empty() : TaskConfig.of(config));
         }
     }
 

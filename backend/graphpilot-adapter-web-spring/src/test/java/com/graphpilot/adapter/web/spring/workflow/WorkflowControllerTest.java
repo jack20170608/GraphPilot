@@ -22,6 +22,7 @@ import com.graphpilot.application.workflow.port.in.QueryWorkflowUseCase;
 import com.graphpilot.domain.dag.DagDefinition;
 import com.graphpilot.domain.dag.DagEdge;
 import com.graphpilot.domain.dag.DagValidationException;
+import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.workflow.Workflow;
@@ -75,7 +76,7 @@ class WorkflowControllerTest {
                 {
                   "name": "Daily ETL",
                   "tasks": [
-                    { "id": "extract", "name": "Extract data" },
+                    { "id": "extract", "name": "Extract data", "type": "shell", "config": { "command": "echo hi", "timeout": 10 } },
                     { "id": "load", "name": "Load data" }
                   ],
                   "edges": [
@@ -99,6 +100,11 @@ class WorkflowControllerTest {
         assertThat(command.tasks()).hasSize(2);
         assertThat(command.tasks().getFirst().id()).isEqualTo(TaskId.of("extract"));
         assertThat(command.tasks().getFirst().name()).isEqualTo("Extract data");
+        assertThat(command.tasks().getFirst().type()).isEqualTo("shell");
+        assertThat(command.tasks().getFirst().config().getString("command")).contains("echo hi");
+        assertThat(command.tasks().getFirst().config().getLong("timeout")).contains(10L);
+        assertThat(command.tasks().get(1).type()).isEqualTo("mock");
+        assertThat(command.tasks().get(1).config()).isEqualTo(TaskConfig.empty());
         assertThat(command.edges()).hasSize(1);
         assertThat(command.edges().getFirst().fromTaskId()).isEqualTo(TaskId.of("extract"));
         assertThat(command.edges().getFirst().toTaskId()).isEqualTo(TaskId.of("load"));
@@ -180,6 +186,8 @@ class WorkflowControllerTest {
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.tasks[0].id").value("extract"))
                 .andExpect(jsonPath("$.tasks[0].name").value("Extract data"))
+                .andExpect(jsonPath("$.tasks[0].type").value("shell"))
+                .andExpect(jsonPath("$.tasks[0].config.command").value("echo hi"))
                 .andExpect(jsonPath("$.tasks[1].id").value("load"))
                 .andExpect(jsonPath("$.tasks[1].name").value("Load data"))
                 .andExpect(jsonPath("$.edges[0].fromTaskId").value("extract"))
@@ -222,6 +230,8 @@ class WorkflowControllerTest {
                 .andExpect(jsonPath("$[0].status").value("DRAFT"))
                 .andExpect(jsonPath("$[0].tasks[0].id").value("extract"))
                 .andExpect(jsonPath("$[0].tasks[0].name").value("Extract data"))
+                .andExpect(jsonPath("$[0].tasks[0].type").value("shell"))
+                .andExpect(jsonPath("$[0].tasks[0].config.command").value("echo hi"))
                 .andExpect(jsonPath("$[0].tasks[1].id").value("load"))
                 .andExpect(jsonPath("$[0].tasks[1].name").value("Load data"))
                 .andExpect(jsonPath("$[0].edges[0].fromTaskId").value("extract"))
@@ -232,6 +242,8 @@ class WorkflowControllerTest {
                 .andExpect(jsonPath("$[1].status").value("ACTIVE"))
                 .andExpect(jsonPath("$[1].tasks[0].id").value("extract"))
                 .andExpect(jsonPath("$[1].tasks[0].name").value("Extract data"))
+                .andExpect(jsonPath("$[1].tasks[0].type").value("shell"))
+                .andExpect(jsonPath("$[1].tasks[0].config.command").value("echo hi"))
                 .andExpect(jsonPath("$[1].edges[0].fromTaskId").value("extract"))
                 .andExpect(jsonPath("$[1].edges[0].toTaskId").value("load"))
                 .andExpect(jsonPath("$[1].createdAt").value("2026-06-13T00:00:00Z"));
@@ -353,7 +365,11 @@ class WorkflowControllerTest {
     private static DagDefinition dag() {
         return new DagDefinition(
                 List.of(
-                        new TaskDefinition(TaskId.of("extract"), "Extract data"),
+                        new TaskDefinition(
+                                TaskId.of("extract"),
+                                "Extract data",
+                                "shell",
+                                TaskConfig.of(Map.of("command", "echo hi"))),
                         new TaskDefinition(TaskId.of("load"), "Load data")),
                 List.of(new DagEdge(TaskId.of("extract"), TaskId.of("load"))));
     }

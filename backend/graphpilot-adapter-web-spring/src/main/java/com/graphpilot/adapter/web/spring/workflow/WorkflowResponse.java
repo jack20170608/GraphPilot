@@ -5,6 +5,7 @@ import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.workflow.Workflow;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 record WorkflowResponse(
         String id,
@@ -28,10 +29,14 @@ record WorkflowResponse(
                 workflow.createdAt());
     }
 
-    record TaskResponse(String id, String name) {
+    record TaskResponse(String id, String name, String type, Map<String, Object> config) {
 
         static TaskResponse from(TaskDefinition task) {
-            return new TaskResponse(task.id().value(), task.name());
+            return new TaskResponse(
+                    task.id().value(),
+                    task.name(),
+                    task.type(),
+                    task.config().asMap());
         }
     }
 

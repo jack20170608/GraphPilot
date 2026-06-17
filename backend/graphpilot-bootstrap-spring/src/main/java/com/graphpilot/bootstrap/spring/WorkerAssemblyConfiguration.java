@@ -1,7 +1,7 @@
 package com.graphpilot.bootstrap.spring;
 
 import com.graphpilot.adapter.worker.spring.WorkflowRunEventListener;
-import com.graphpilot.adapter.worker.spring.handler.TaskHandlerRegistry;
+import com.graphpilot.adapter.worker.handler.TaskHandlerRegistry;
 import com.graphpilot.application.execution.port.in.ExecuteWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;

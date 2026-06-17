@@ -47,6 +47,8 @@ GraphPilot/
     graphpilot-adapter-web-spring/       # Spring Web REST adapter
     graphpilot-adapter-persistence-memory/ # 本地开发与早期纵向切片内存适配器
     graphpilot-adapter-persistence-mybatis/
+    graphpilot-adapter-worker/           # 框架中立的 worker 核心（handlers + registry）
+    graphpilot-adapter-worker-spring/    # Spring 事件胶水（worker 核心的 Spring 托管适配）
     graphpilot-bootstrap-spring/         # Spring Boot 组装模块
   docs/
     product/

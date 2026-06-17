@@ -10,9 +10,9 @@
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>graphpilot-adapter-worker-spring</artifactId>
-    <name>GraphPilot Spring Worker Adapter</name>
-    <description>Spring glue for GraphPilot task execution: bridges the framework-free worker core to Spring's event bus. Contains only the event publisher and listener; all handler logic lives in graphpilot-adapter-worker.</description>
+    <artifactId>graphpilot-adapter-worker</artifactId>
+    <name>GraphPilot Worker Adapter (framework-free)</name>
+    <description>Framework-free worker core for GraphPilot task execution. Contains task handlers and the handler registry, with no dependency on any runtime framework so it can be hosted by Spring, Micronaut, or a standalone runtime.</description>
 
     <dependencies>
         <dependency>
@@ -21,17 +21,15 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-worker</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

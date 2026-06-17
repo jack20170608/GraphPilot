@@ -33,6 +33,8 @@ bootstrap -> adapters -> application -> domain
 - `graphpilot-adapter-web-spring` — Spring Web REST adapter。
 - `graphpilot-adapter-persistence-memory` — 面向本地开发和早期纵向切片验证的 in-memory persistence adapter。
 - `graphpilot-adapter-persistence-mybatis` — MyBatis persistence adapter。启用 `postgres` profile 时，它通过 PostgreSQL 与 Flyway schema 为 Workflow create/get/list 和 Workflow Run 元数据提供持久化实现。
+- `graphpilot-adapter-worker` — 框架中立的 worker 核心：task handlers（http/shell/mock）与 handler registry，仅依赖 `graphpilot-application`，不耦合任何运行时框架，便于未来由 Spring、Micronaut 或独立进程托管。
+- `graphpilot-adapter-worker-spring` — Spring 事件胶水：将框架中立的 worker 核心桥接到 Spring 事件总线（`SpringEventPublisher` 发布、`WorkflowRunEventListener` 订阅），不承载任何 handler 逻辑。
 - 未来 adapters 可能包括 Spring Security、Quartz scheduling、Redis locks/events、Kubernetes workers、Docker workers 或其它 persistence implementations。
 
 ### Bootstrap Module

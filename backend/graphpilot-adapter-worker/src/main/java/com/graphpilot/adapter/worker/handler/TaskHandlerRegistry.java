@@ -1,4 +1,4 @@
-package com.graphpilot.adapter.worker.spring.handler;
+package com.graphpilot.adapter.worker.handler;
 
 import com.graphpilot.application.execution.port.in.TaskHandler;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;

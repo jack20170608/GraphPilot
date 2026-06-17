@@ -1,4 +1,4 @@
-package com.graphpilot.adapter.worker.spring.handler;
+package com.graphpilot.adapter.worker.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

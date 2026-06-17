@@ -18,6 +18,7 @@
         <module>graphpilot-adapter-web-spring</module>
         <module>graphpilot-adapter-persistence-mybatis</module>
         <module>graphpilot-adapter-persistence-memory</module>
+        <module>graphpilot-adapter-worker</module>
         <module>graphpilot-adapter-worker-spring</module>
         <module>graphpilot-bootstrap-spring</module>
     </modules>

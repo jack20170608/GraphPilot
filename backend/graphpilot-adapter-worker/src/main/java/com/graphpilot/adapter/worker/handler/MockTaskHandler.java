@@ -10,7 +10,7 @@ import java.util.Random;
 
 /**
  * Mock task handler for testing and development.
- * Simulates task execution with configurable delay.
+ * Simulates task execution with configurable delay and deterministic success/failure when requested.
  */
 public class MockTaskHandler implements TaskHandler {
 
@@ -26,18 +26,37 @@ public class MockTaskHandler implements TaskHandler {
     @Override
     public TaskResult execute(TaskRun taskRun, TaskDefinition task, Map<String, Object> input) {
         try {
-            // Simulate some work
-            Thread.sleep(DEFAULT_DELAY.toMillis());
+            long delayMs = getLong(input, "delayMs", DEFAULT_DELAY.toMillis());
+            if (delayMs > 0) {
+                Thread.sleep(delayMs);
+            }
 
-            // 95% success rate for mock
+            Object success = input.get("success");
+            if (success instanceof Boolean fixedSuccess) {
+                return fixedSuccess
+                        ? TaskResult.success("Mock task completed successfully")
+                        : TaskResult.failure("MOCK_ERROR", "Mock task failed by config");
+            }
+
+            // 95% success rate for mock when no deterministic config is provided.
             if (RANDOM.nextDouble() < 0.95) {
                 return TaskResult.success("Mock task completed successfully");
-            } else {
-                return TaskResult.failure("MOCK_ERROR", "Mock task failed randomly");
             }
+            return TaskResult.failure("MOCK_ERROR", "Mock task failed randomly");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return TaskResult.failure("Interrupted", e.getMessage());
         }
+    }
+
+    private long getLong(Map<String, Object> input, String key, long defaultValue) {
+        Object value = input.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        return Long.parseLong(value.toString());
     }
 }

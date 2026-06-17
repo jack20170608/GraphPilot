@@ -39,16 +39,34 @@ class MockTaskHandlerTest {
     void executeRespectsInputDelay() {
         TaskRun taskRun = createTaskRun(TaskRunStatus.PENDING);
         TaskDefinition taskDef = createTaskDefinition();
-        Map<String, Object> input = Map.of("delay", 50L);
+        Map<String, Object> input = Map.of("delayMs", 50L, "success", true);
 
         long start = System.currentTimeMillis();
-        // Test with default (no delay param)
-        TaskResult result = handler.execute(taskRun, taskDef, Map.of());
+        TaskResult result = handler.execute(taskRun, taskDef, input);
         long duration = System.currentTimeMillis() - start;
 
-        assertThat(result).isNotNull();
-        // Default delay is 100ms
-        assertThat(duration).isGreaterThanOrEqualTo(90);
+        assertThat(result.status()).isEqualTo(TaskRunStatus.SUCCEEDED);
+        assertThat(duration).isGreaterThanOrEqualTo(45);
+    }
+
+    @Test
+    void executeCanBeForcedToSucceedByConfig() {
+        TaskResult result = handler.execute(
+                createTaskRun(TaskRunStatus.PENDING),
+                createTaskDefinition(),
+                Map.of("success", true, "delayMs", 0));
+
+        assertThat(result.status()).isEqualTo(TaskRunStatus.SUCCEEDED);
+    }
+
+    @Test
+    void executeCanBeForcedToFailByConfig() {
+        TaskResult result = handler.execute(
+                createTaskRun(TaskRunStatus.PENDING),
+                createTaskDefinition(),
+                Map.of("success", false, "delayMs", 0));
+
+        assertThat(result.status()).isEqualTo(TaskRunStatus.FAILED);
     }
 
     private TaskRun createTaskRun(TaskRunStatus status) {

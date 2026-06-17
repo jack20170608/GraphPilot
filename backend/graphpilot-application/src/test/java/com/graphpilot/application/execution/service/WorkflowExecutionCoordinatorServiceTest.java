@@ -11,6 +11,7 @@ import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.DagDefinition;
 import com.graphpilot.domain.dag.DagEdge;
+import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskResult;
@@ -148,6 +149,25 @@ class WorkflowExecutionCoordinatorServiceTest {
         assertThat(workflowRunRepository.statusUpdates).endsWith(WorkflowRunStatus.SUCCEEDED);
         assertThat(workflowRunRepository.findRunById(runId).orElseThrow().status())
                 .isEqualTo(WorkflowRunStatus.SUCCEEDED);
+    }
+
+    @Test
+    void executePassesTaskConfigToHandler() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "task-1", TaskRunStatus.PENDING, 0));
+        givenWorkflow(workflowId, new DagDefinition(
+                List.of(new TaskDefinition(
+                        TaskId.of("task-1"),
+                        "Task task-1",
+                        "mock",
+                        TaskConfig.of(Map.of("success", true, "delayMs", 0)))),
+                List.of()));
+
+        coordinator.execute(runId);
+
+        assertThat(taskHandler.receivedInputs).containsExactly(Map.of("success", true, "delayMs", 0));
     }
 
     @Test
@@ -463,6 +483,7 @@ class WorkflowExecutionCoordinatorServiceTest {
 
         private final List<String> invocations = new ArrayList<>();
         private final List<String> invocationOrder = new ArrayList<>();
+        private final List<Map<String, Object>> receivedInputs = new ArrayList<>();
         private Function<TaskRun, TaskResult> behavior = tr -> TaskResult.success("done");
 
         void alwaysSucceed() {
@@ -507,6 +528,7 @@ class WorkflowExecutionCoordinatorServiceTest {
         public TaskResult execute(TaskRun taskRun, TaskDefinition task, Map<String, Object> input) {
             invocations.add(taskRun.taskId().value());
             invocationOrder.add(taskRun.taskId().value());
+            receivedInputs.add(Map.copyOf(input));
             return Objects.requireNonNull(behavior.apply(taskRun), "behavior must not return null");
         }
     }

@@ -193,7 +193,7 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
 
         TaskResult result;
         try {
-            result = handler.execute(taskRun, taskDef, Map.of());
+            result = handler.execute(taskRun, taskDef, taskDef.config().asMap());
         } catch (Exception e) {
             result = TaskResult.failure(e.getClass().getSimpleName(), e.getMessage());
         }

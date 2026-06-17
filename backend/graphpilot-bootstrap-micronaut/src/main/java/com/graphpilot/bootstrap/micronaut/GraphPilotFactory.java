@@ -2,8 +2,10 @@ package com.graphpilot.bootstrap.micronaut;
 
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRepository;
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRunRepository;
+import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRunTimelineRepository;
 import com.graphpilot.adapter.persistence.memory.SystemClockAdapter;
 import com.graphpilot.adapter.persistence.memory.UuidTaskRunIdGenerator;
+import com.graphpilot.adapter.persistence.memory.UuidTimelineEventIdGenerator;
 import com.graphpilot.adapter.persistence.memory.UuidWorkflowIdGenerator;
 import com.graphpilot.adapter.persistence.memory.UuidWorkflowRunIdGenerator;
 import com.graphpilot.adapter.worker.handler.TaskHandlerRegistry;
@@ -17,11 +19,14 @@ import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
 import com.graphpilot.application.execution.port.in.TriggerWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.out.EventPublisherPort;
 import com.graphpilot.application.execution.port.out.TaskRunIdGeneratorPort;
+import com.graphpilot.application.execution.port.out.TimelineEventIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
+import com.graphpilot.application.execution.port.out.WorkflowRunTimelineRepository;
 import com.graphpilot.application.execution.service.FixedBackoffStrategy;
 import com.graphpilot.application.execution.service.QueryWorkflowRunService;
 import com.graphpilot.application.execution.service.ScanPendingWorkflowRunsService;
+import com.graphpilot.application.execution.service.TimelineRecorder;
 import com.graphpilot.application.execution.service.WorkflowExecutionCoordinatorService;
 import com.graphpilot.application.execution.service.TriggerWorkflowRunService;
 import com.graphpilot.application.workflow.port.in.ChangeWorkflowLifecycleUseCase;
@@ -60,6 +65,11 @@ final class GraphPilotFactory {
     }
 
     @Singleton
+    WorkflowRunTimelineRepository workflowRunTimelineRepository() {
+        return new InMemoryWorkflowRunTimelineRepository();
+    }
+
+    @Singleton
     IdGeneratorPort idGeneratorPort() {
         return new UuidWorkflowIdGenerator();
     }
@@ -75,6 +85,11 @@ final class GraphPilotFactory {
     }
 
     @Singleton
+    TimelineEventIdGeneratorPort timelineEventIdGeneratorPort() {
+        return new UuidTimelineEventIdGenerator();
+    }
+
+    @Singleton
     ClockPort clockPort() {
         return new SystemClockAdapter();
     }
@@ -87,18 +102,28 @@ final class GraphPilotFactory {
     }
 
     @Singleton
+    TimelineRecorder timelineRecorder(
+            WorkflowRunTimelineRepository timelineRepository,
+            TimelineEventIdGeneratorPort timelineEventIdGenerator,
+            ClockPort clock) {
+        return new TimelineRecorder(timelineRepository, timelineEventIdGenerator, clock);
+    }
+
+    @Singleton
     ExecuteWorkflowRunUseCase executeWorkflowRunUseCase(
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
             TaskHandlerProvider taskHandlerProvider,
-            ClockPort clock) {
+            ClockPort clock,
+            TimelineRecorder timelineRecorder) {
         // Zero backoff keeps the PoC fast; the framework-free core is unchanged.
         return new WorkflowExecutionCoordinatorService(
                 workflowRepository,
                 workflowRunRepository,
                 taskHandlerProvider,
                 clock,
-                new FixedBackoffStrategy(Duration.ZERO));
+                new FixedBackoffStrategy(Duration.ZERO),
+                timelineRecorder);
     }
 
     @Singleton
@@ -126,19 +151,23 @@ final class GraphPilotFactory {
             WorkflowRunIdGeneratorPort workflowRunIdGenerator,
             TaskRunIdGeneratorPort taskRunIdGenerator,
             ClockPort clock,
-            EventPublisherPort eventPublisher) {
+            EventPublisherPort eventPublisher,
+            TimelineRecorder timelineRecorder) {
         return new TriggerWorkflowRunService(
                 workflowRepository,
                 workflowRunRepository,
                 workflowRunIdGenerator,
                 taskRunIdGenerator,
                 clock,
-                eventPublisher);
+                eventPublisher,
+                timelineRecorder);
     }
 
     @Singleton
-    QueryWorkflowRunUseCase queryWorkflowRunUseCase(WorkflowRunRepository workflowRunRepository) {
-        return new QueryWorkflowRunService(workflowRunRepository);
+    QueryWorkflowRunUseCase queryWorkflowRunUseCase(
+            WorkflowRunRepository workflowRunRepository,
+            WorkflowRunTimelineRepository timelineRepository) {
+        return new QueryWorkflowRunService(workflowRunRepository, timelineRepository);
     }
 
     @Singleton

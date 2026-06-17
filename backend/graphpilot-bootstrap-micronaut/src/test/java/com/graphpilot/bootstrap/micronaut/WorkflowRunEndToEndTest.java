@@ -44,7 +44,14 @@ class WorkflowRunEndToEndTest {
                 HttpRequest.POST("/api/workflows", createRequest),
                 Map.class).body();
         String workflowId = (String) created.get("id");
-        assertThat(created.get("status")).isEqualTo("ACTIVE");
+        Map<String, Object> workflow = httpClient.toBlocking().retrieve(
+                HttpRequest.GET("/api/workflows/" + workflowId), Map.class);
+        assertThat(workflow.get("status")).isEqualTo("DRAFT");
+        assertThat((List<?>) workflow.get("tasks")).hasSize(2);
+
+        Map<String, Object> activated = httpClient.toBlocking().retrieve(
+                HttpRequest.POST("/api/workflows/" + workflowId + "/activate", Map.of()), Map.class);
+        assertThat(activated.get("status")).isEqualTo("ACTIVE");
 
         // Trigger a run; the Micronaut event glue routes it to the worker core.
         var triggered = httpClient.toBlocking().exchange(
@@ -65,6 +72,13 @@ class WorkflowRunEndToEndTest {
             assertThat(task.get("status")).isEqualTo("SUCCEEDED");
             assertThat(task.get("output")).asString().contains("ok");
         });
+
+        List<Map<String, Object>> timeline = httpClient.toBlocking().retrieve(
+                HttpRequest.GET("/api/workflow-runs/" + runId + "/timeline"),
+                List.class);
+        assertThat(timeline)
+                .extracting(event -> event.get("type"))
+                .contains("RUN_CREATED", "RUN_STARTED", "TASK_STARTED", "TASK_SUCCEEDED", "RUN_SUCCEEDED");
     }
 
     @SuppressWarnings("unchecked")

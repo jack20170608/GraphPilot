@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.graphpilot.adapter.persistence.mybatis.mapper.WorkflowRunTimelineMapper">
+
+    <resultMap id="WorkflowRunTimelineEventRowResultMap" type="com.graphpilot.adapter.persistence.mybatis.row.WorkflowRunTimelineEventRow">
+        <constructor>
+            <arg column="id" javaType="java.lang.String" />
+            <arg column="workflow_run_id" javaType="java.lang.String" />
+            <arg column="task_run_id" javaType="java.lang.String" />
+            <arg column="task_id" javaType="java.lang.String" />
+            <arg column="type" javaType="java.lang.String" />
+            <arg column="message" javaType="java.lang.String" />
+            <arg column="occurred_at" javaType="java.time.Instant" />
+        </constructor>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.graphpilot.adapter.persistence.mybatis.row.WorkflowRunTimelineEventRow">
+        insert into workflow_run_timeline_events (
+            id, workflow_run_id, task_run_id, task_id, type, message, occurred_at
+        ) values (
+            #{id}, #{workflowRunId}, #{taskRunId}, #{taskId}, #{type}, #{message}, #{occurredAt}
+        )
+    </insert>
+
+    <select id="findByWorkflowRunId" resultMap="WorkflowRunTimelineEventRowResultMap">
+        select id, workflow_run_id, task_run_id, task_id, type, message, occurred_at
+        from workflow_run_timeline_events
+        where workflow_run_id = #{workflowRunId}
+        order by occurred_at, id
+        limit #{limit}
+    </select>
+</mapper>

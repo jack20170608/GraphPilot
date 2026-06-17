@@ -38,3 +38,6 @@ logs/
 
 # Local code intelligence indexes
 .codegraph/
+
+# Local brainstorming companion artifacts
+.superpowers/

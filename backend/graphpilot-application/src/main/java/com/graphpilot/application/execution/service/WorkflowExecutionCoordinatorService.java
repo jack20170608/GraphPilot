@@ -62,54 +62,67 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         }
 
         // Load workflow definition
-        var workflowId = workflowRun.workflowId();
-        Workflow workflow = workflowRepository.findById(workflowId)
-                .orElseThrow(() -> new IllegalStateException("Workflow not found: " + workflowId));
+        Workflow workflow = workflowRepository.findById(workflowRun.workflowId())
+                .orElseThrow(() -> new IllegalStateException("Workflow not found: " + workflowRun.workflowId()));
 
         DagDefinition dag = workflow.dag();
         Map<TaskId, TaskDefinition> taskDefsById = dag.tasks().stream()
                 .collect(Collectors.toMap(TaskDefinition::id, Function.identity()));
+        Map<TaskId, Set<TaskId>> dependencies = buildDependencyMap(dag);
 
         // Mark workflow as RUNNING if first time
-        Instant now = clock.now();
         if (workflowRun.status() == WorkflowRunStatus.PENDING) {
-            updateWorkflowRunStatus(workflowRunId, WorkflowRunStatus.RUNNING, now);
-            workflowRun = workflowRun.withStatus(WorkflowRunStatus.RUNNING).withStartedAt(now);
+            updateWorkflowRunStatus(workflowRunId, WorkflowRunStatus.RUNNING, clock.now());
         }
 
-        // Get task runs
-        List<TaskRun> taskRuns = workflowRunRepository.findTaskRunsByRunId(workflowRunId);
+        // Wave-based execution loop: repeatedly execute runnable tasks and cascade
+        // skips until no further progress can be made, then finalize the run status.
+        // Reloading task runs each wave lets the DAG advance past root tasks and lets
+        // retried (PENDING) tasks be re-executed, all driven by a single event.
+        while (true) {
+            List<TaskRun> taskRuns = workflowRunRepository.findTaskRunsByRunId(workflowRunId);
+            Set<TaskId> completedTaskIds = taskRuns.stream()
+                    .filter(tr -> tr.status() == TaskRunStatus.SUCCEEDED)
+                    .map(TaskRun::taskId)
+                    .collect(Collectors.toSet());
 
-        // Find runnable tasks (dependencies satisfied)
-        Set<TaskId> completedTaskIds = taskRuns.stream()
-                .filter(tr -> tr.status() == TaskRunStatus.SUCCEEDED)
-                .map(TaskRun::taskId)
-                .collect(Collectors.toSet());
+            List<TaskRun> runnableTasks = findRunnableTasks(taskRuns, taskDefsById, completedTaskIds, dependencies);
+            if (!runnableTasks.isEmpty()) {
+                Instant executionTime = clock.now();
+                for (TaskRun taskRun : runnableTasks) {
+                    executeTask(taskRun, taskDefsById.get(taskRun.taskId()), executionTime);
+                }
+                continue;
+            }
 
-        List<TaskRun> runnableTasks = findRunnableTasks(taskRuns, taskDefsById, completedTaskIds, dag);
+            // No runnable tasks: cascade SKIPPED to tasks blocked by failed/skipped
+            // dependencies so the run can still reach a terminal state.
+            if (cascadeSkippedTasks(workflowRunId, taskRuns, dependencies)) {
+                continue;
+            }
 
-        // Execute each runnable task
-        for (TaskRun taskRun : runnableTasks) {
-            executeTask(taskRun, taskDefsById.get(taskRun.taskId()), now);
+            break;
         }
 
-        // Check if workflow is complete (reload task runs after execution)
-        List<TaskRun> updatedTaskRuns = workflowRunRepository.findTaskRunsByRunId(workflowRunId);
-        checkWorkflowCompletion(workflowRunId, updatedTaskRuns);
+        // Finalize workflow run status now that no task is PENDING.
+        List<TaskRun> finalTaskRuns = workflowRunRepository.findTaskRunsByRunId(workflowRunId);
+        checkWorkflowCompletion(workflowRunId, finalTaskRuns);
+    }
+
+    private Map<TaskId, Set<TaskId>> buildDependencyMap(DagDefinition dag) {
+        Map<TaskId, Set<TaskId>> dependencies = new java.util.HashMap<>();
+        for (DagEdge edge : dag.edges()) {
+            dependencies.computeIfAbsent(edge.toTaskId(), k -> new java.util.HashSet<>())
+                    .add(edge.fromTaskId());
+        }
+        return dependencies;
     }
 
     private List<TaskRun> findRunnableTasks(
             List<TaskRun> taskRuns,
             Map<TaskId, TaskDefinition> taskDefsById,
             Set<TaskId> completedTaskIds,
-            DagDefinition dag) {
-
-        // Build dependency map from DAG edges
-        Map<TaskId, Set<TaskId>> dependencies = new java.util.HashMap<>();
-        for (DagEdge edge : dag.edges()) {
-            dependencies.computeIfAbsent(edge.toTaskId(), k -> new java.util.HashSet<>())
-                    .add(edge.fromTaskId());
-        }
+            Map<TaskId, Set<TaskId>> dependencies) {
 
         return taskRuns.stream()
                 .filter(tr -> tr.status() == TaskRunStatus.PENDING)
@@ -130,6 +143,35 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
                 .toList();
     }
 
+    private boolean cascadeSkippedTasks(
+            WorkflowRunId workflowRunId,
+            List<TaskRun> taskRuns,
+            Map<TaskId, Set<TaskId>> dependencies) {
+        Set<TaskId> failedOrSkipped = taskRuns.stream()
+                .filter(tr -> tr.status() == TaskRunStatus.FAILED
+                        || tr.status() == TaskRunStatus.SKIPPED)
+                .map(TaskRun::taskId)
+                .collect(Collectors.toSet());
+
+        boolean anySkipped = false;
+        for (TaskRun taskRun : taskRuns) {
+            if (taskRun.status() != TaskRunStatus.PENDING) {
+                continue;
+            }
+            Set<TaskId> deps = dependencies.get(taskRun.taskId());
+            if (deps == null || deps.isEmpty()) {
+                continue;
+            }
+            if (deps.stream().anyMatch(failedOrSkipped::contains)) {
+                TaskRun skipped = taskRun.withStatus(TaskRunStatus.SKIPPED)
+                        .withFinishedAt(clock.now());
+                workflowRunRepository.updateTaskRunStatus(workflowRunId, skipped);
+                anySkipped = true;
+            }
+        }
+        return anySkipped;
+    }
+
     private void executeTask(TaskRun taskRun, TaskDefinition taskDef, Instant defaultStartedAt) {
         TaskHandler handler = taskHandlerProvider.getHandler(taskRun.taskType());
 
@@ -145,25 +187,24 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             result = TaskResult.failure(e.getClass().getSimpleName(), e.getMessage());
         }
 
-        // Update status based on result
+        // Project the post-execution task run, then decide whether to retry. canRetry()
+        // must be evaluated on the FAILED view: the incoming taskRun is still PENDING, so
+        // asking it directly would never allow a retry.
         Instant now = clock.now();
-        String errorMessage = result.isFailure() ?
-                result.error().orElse(result.errorMessage().orElse("Unknown error")) : null;
+        String errorMessage = result.isFailure()
+                ? result.error().orElse(result.errorMessage().orElse("Unknown error"))
+                : null;
+        TaskRun finishedTaskRun = taskRun.withStatus(result.status())
+                .withStartedAt(startedAt)
+                .withFinishedAt(now)
+                .withErrorMessage(errorMessage);
 
-        TaskRunStatus newStatus = result.status();
-        int newRetryCount = taskRun.retryCount();
-
-        if (newStatus == TaskRunStatus.FAILED && taskRun.canRetry()) {
-            // Will retry
-            newRetryCount = taskRun.retryCount() + 1;
-            newStatus = TaskRunStatus.PENDING;
-            TaskRun retryTaskRun = taskRun.withStatus(newStatus).withIncrementedRetry();
-            workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), retryTaskRun);
+        if (result.isFailure() && finishedTaskRun.canRetry()) {
+            // Reset to PENDING for re-execution in a later wave; retryCount is incremented
+            // so retries are bounded by maxRetries.
+            workflowRunRepository.updateTaskRunStatus(
+                    taskRun.workflowRunId(), finishedTaskRun.withIncrementedRetry());
         } else {
-            TaskRun finishedTaskRun = taskRun.withStatus(newStatus)
-                    .withStartedAt(startedAt)
-                    .withFinishedAt(now)
-                    .withErrorMessage(errorMessage);
             workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), finishedTaskRun);
         }
     }

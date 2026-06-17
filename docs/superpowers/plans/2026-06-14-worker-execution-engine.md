@@ -138,7 +138,7 @@ ALTER TABLE workflow_runs ADD COLUMN finished_at timestamptz;
 
 - [x] Run full test suite
 - [x] Update docs
-- [ ] Manual verification
+- [x] Manual verification
 
 ## Acceptance
 

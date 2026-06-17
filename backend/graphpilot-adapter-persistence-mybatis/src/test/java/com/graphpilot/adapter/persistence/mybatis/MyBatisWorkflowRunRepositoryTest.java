@@ -103,6 +103,11 @@ class MyBatisWorkflowRunRepositoryTest {
         }
 
         @Override
+        public List<WorkflowRunRow> findWorkflowRunsByStatus(String status, int limit) {
+            return List.of();
+        }
+
+        @Override
         public List<TaskRunRow> findTaskRunsByRunId(String workflowRunId) {
             return List.of();
         }

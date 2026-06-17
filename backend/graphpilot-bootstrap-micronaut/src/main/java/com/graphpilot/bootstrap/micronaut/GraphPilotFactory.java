@@ -12,6 +12,7 @@ import com.graphpilot.adapter.worker.micronaut.WorkflowRunCreatedApplicationEven
 import com.graphpilot.adapter.worker.micronaut.WorkflowRunEventListener;
 import com.graphpilot.application.execution.port.in.ExecuteWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.in.QueryWorkflowRunUseCase;
+import com.graphpilot.application.execution.port.in.ScanPendingWorkflowRunsUseCase;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
 import com.graphpilot.application.execution.port.in.TriggerWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.out.EventPublisherPort;
@@ -20,6 +21,7 @@ import com.graphpilot.application.execution.port.out.WorkflowRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.application.execution.service.FixedBackoffStrategy;
 import com.graphpilot.application.execution.service.QueryWorkflowRunService;
+import com.graphpilot.application.execution.service.ScanPendingWorkflowRunsService;
 import com.graphpilot.application.execution.service.WorkflowExecutionCoordinatorService;
 import com.graphpilot.application.execution.service.TriggerWorkflowRunService;
 import com.graphpilot.application.workflow.port.in.ChangeWorkflowLifecycleUseCase;
@@ -97,6 +99,13 @@ final class GraphPilotFactory {
                 taskHandlerProvider,
                 clock,
                 new FixedBackoffStrategy(Duration.ZERO));
+    }
+
+    @Singleton
+    ScanPendingWorkflowRunsUseCase scanPendingWorkflowRunsUseCase(
+            WorkflowRunRepository workflowRunRepository,
+            ExecuteWorkflowRunUseCase executeWorkflowRunUseCase) {
+        return new ScanPendingWorkflowRunsService(workflowRunRepository, executeWorkflowRunUseCase);
     }
 
     @Singleton

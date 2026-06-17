@@ -105,6 +105,24 @@ class MyBatisWorkflowRunRepositoryIntegrationTest {
     }
 
     @Test
+    void findsWorkflowRunsByStatusWithLimit() {
+        Workflow workflow = saveActiveWorkflow("workflow-run-status-list");
+        WorkflowRun pendingA = workflowRun("run-a", workflow.id(), WorkflowRunStatus.PENDING, Instant.parse("2026-06-14T00:00:00Z"));
+        WorkflowRun running = workflowRun("run-b", workflow.id(), WorkflowRunStatus.RUNNING, Instant.parse("2026-06-14T00:00:01Z"));
+        WorkflowRun pendingC = workflowRun("run-c", workflow.id(), WorkflowRunStatus.PENDING, Instant.parse("2026-06-14T00:00:02Z"));
+        workflowRunRepository.save(pendingA, List.of());
+        workflowRunRepository.save(running, List.of());
+        workflowRunRepository.save(pendingC, List.of());
+
+        assertThat(workflowRunRepository.findByStatus(WorkflowRunStatus.PENDING, 1))
+                .extracting(WorkflowRun::id)
+                .containsExactly(pendingA.id());
+        assertThat(workflowRunRepository.findByStatus(WorkflowRunStatus.PENDING, 10))
+                .extracting(WorkflowRun::id)
+                .containsExactly(pendingA.id(), pendingC.id());
+    }
+
+    @Test
     void findTaskRunsByRunIdOrdersByPositionThenTaskId() {
         Workflow workflow = saveActiveWorkflow("workflow-task-run-list");
         WorkflowRun workflowRun = workflowRun(

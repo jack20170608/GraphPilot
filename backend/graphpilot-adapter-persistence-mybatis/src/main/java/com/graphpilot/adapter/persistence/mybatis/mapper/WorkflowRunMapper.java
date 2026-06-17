@@ -19,6 +19,10 @@ public interface WorkflowRunMapper {
             @Param("workflowId") String workflowId,
             @Param("limit") int limit);
 
+    List<WorkflowRunRow> findWorkflowRunsByStatus(
+            @Param("status") String status,
+            @Param("limit") int limit);
+
     List<TaskRunRow> findTaskRunsByRunId(@Param("workflowRunId") String workflowRunId);
 
     List<TaskRunRow> findPendingTaskRunsByRunId(@Param("workflowRunId") String workflowRunId);

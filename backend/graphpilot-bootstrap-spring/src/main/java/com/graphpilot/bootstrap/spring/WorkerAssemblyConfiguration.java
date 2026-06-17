@@ -3,24 +3,27 @@ package com.graphpilot.bootstrap.spring;
 import com.graphpilot.adapter.worker.spring.WorkflowRunEventListener;
 import com.graphpilot.adapter.worker.handler.TaskHandlerRegistry;
 import com.graphpilot.application.execution.port.in.ExecuteWorkflowRunUseCase;
+import com.graphpilot.application.execution.port.in.ScanPendingWorkflowRunsUseCase;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
-import com.graphpilot.adapter.persistence.mybatis.MyBatisWorkflowRunRepository;
 import com.graphpilot.application.execution.service.FixedBackoffStrategy;
+import com.graphpilot.application.execution.service.ScanPendingWorkflowRunsService;
 import com.graphpilot.application.execution.service.WorkflowExecutionCoordinatorService;
 import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import java.time.Duration;
 import java.util.concurrent.Executor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
 @EnableAsync
+@EnableScheduling
 class WorkerAssemblyConfiguration {
 
     /**
@@ -50,9 +53,16 @@ class WorkerAssemblyConfiguration {
     }
 
     @Bean
+    ScanPendingWorkflowRunsUseCase scanPendingWorkflowRunsUseCase(
+            WorkflowRunRepository workflowRunRepository,
+            ExecuteWorkflowRunUseCase executeWorkflowRunUseCase) {
+        return new ScanPendingWorkflowRunsService(workflowRunRepository, executeWorkflowRunUseCase);
+    }
+
+    @Bean
     WorkflowRunEventListener workflowRunEventListener(
             ExecuteWorkflowRunUseCase executeWorkflowRunUseCase,
-            Executor taskExecutor) {
+            @Qualifier("taskExecutor") Executor taskExecutor) {
         return new WorkflowRunEventListener(executeWorkflowRunUseCase, taskExecutor);
     }
 

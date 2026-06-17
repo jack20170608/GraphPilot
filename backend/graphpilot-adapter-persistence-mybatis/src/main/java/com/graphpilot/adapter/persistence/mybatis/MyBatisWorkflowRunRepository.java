@@ -111,9 +111,12 @@ public class MyBatisWorkflowRunRepository implements WorkflowRunRepository {
     @Override
     @Transactional(readOnly = true)
     public List<WorkflowRun> findByStatus(WorkflowRunStatus status, int limit) {
-        // Simple implementation - in production would have a separate query
-        return findRunsByWorkflowId(WorkflowId.of(""), limit).stream()
-                .filter(wr -> wr.status() == status)
+        Objects.requireNonNull(status, "status must not be null");
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Workflow run query limit must be positive");
+        }
+        return workflowRunMapper.findWorkflowRunsByStatus(status.name(), limit).stream()
+                .map(MyBatisWorkflowRunRepository::toWorkflowRun)
                 .toList();
     }
 

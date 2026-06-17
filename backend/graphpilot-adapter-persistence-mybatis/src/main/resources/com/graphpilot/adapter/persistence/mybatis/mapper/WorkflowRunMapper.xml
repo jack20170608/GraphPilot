@@ -93,6 +93,14 @@
         limit #{limit}
     </select>
 
+    <select id="findWorkflowRunsByStatus" resultMap="WorkflowRunRowResultMap">
+        select id, workflow_id, status, triggered_at, started_at, finished_at
+        from workflow_runs
+        where status = #{status}
+        order by triggered_at, id
+        limit #{limit}
+    </select>
+
     <select id="findTaskRunsByRunId" resultMap="TaskRunRowResultMap">
         select id, workflow_run_id, task_id, task_name, task_type, status, position, retry_count, max_retries, error_message, output_data, started_at, finished_at, created_at
         from task_runs

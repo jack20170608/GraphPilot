@@ -73,17 +73,19 @@ bootstrap -> adapters -> application -> domain
 
 ## 当前状态
 
-后端已完成 Workflow 基础纵向切片和 Workflow Run MVP。当前 Spring Web adapter 暴露以下 API：
+后端已完成 Workflow 基础纵向切片、Workflow Run MVP 和 worker 执行能力。当前 Spring Web adapter 与 Micronaut bootstrap PoC 对齐暴露以下 API：
 
-- `POST /api/workflows` 创建 Workflow。
+- `POST /api/workflows` 创建 Workflow；task definitions 支持静态 JSON `config`，worker handlers 以该 config 作为输入。
 - `GET /api/workflows/{id}` 查询单个 Workflow。
 - `GET /api/workflows?limit=50` 按限制数量列出 Workflows。
-- `POST /api/workflows/{workflowId}/runs` 手动触发 ACTIVE Workflow 的一次运行，创建 `PENDING` run/task-run 元数据。
+- `POST /api/workflows/{id}/{activate|pause|resume|archive}` 管理 Workflow 生命周期。
+- `POST /api/workflows/{workflowId}/runs` 手动触发 ACTIVE Workflow 的一次运行。
 - `GET /api/workflows/{workflowId}/runs?limit=50` 查询某个 Workflow 的运行列表。
 - `GET /api/workflow-runs/{runId}` 查询单个 Workflow Run。
-- `GET /api/workflow-runs/{runId}/tasks` 查询 Workflow Run 下的 Task Run 列表。
+- `GET /api/workflow-runs/{runId}/tasks` 查询 Task Run 列表（状态、重试、输出、错误、开始/结束时间）。
+- `GET /api/workflow-runs/{runId}/timeline?limit=200` 查询结构化 timeline 事件。
 
-Workflow Run MVP 只覆盖手动触发和运行元数据查询；尚未实现 scheduler、worker 执行、重试、取消、超时、日志、输出或运行状态更新能力。
+Worker 可由创建事件触发，也可通过保守的 PENDING-run scanner 补偿事件丢失；scanner 不自动重置或失败化卡住的 RUNNING run/task。worker core 保持框架中立，Spring 与 Micronaut runtime 均复用同一份 application/domain/worker core。
 
 默认 profile 使用 in-memory persistence，适合无数据库配置的本地开发和快速验证。启用 `postgres` profile 时，后端使用 PostgreSQL、Flyway 和 MyBatis 提供 Workflow 与 Workflow Run 元数据持久化能力，并要求显式提供以下环境变量，不提供默认值：
 

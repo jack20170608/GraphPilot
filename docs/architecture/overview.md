@@ -49,7 +49,7 @@ bootstrap -> adapters -> application -> domain
 
 ## 当前 Workflow Run 与 Worker 能力
 
-当前后端支持通过 Spring Web API 与 Micronaut runtime API 触发 ACTIVE Workflow 的一次运行，并由框架中立 worker core 执行 DAG。Workflow task definitions 支持静态 JSON `config`，shell/http/mock/poc handlers 以该 config 作为输入。
+当前后端支持通过 Spring Web API 与 Micronaut runtime API 触发 ACTIVE Workflow 的一次运行，并由框架中立 worker core 执行 DAG。Workflow task definitions 支持静态 JSON `config`，shell/http/mock/poc handlers 以该 config 作为输入。Task config 表达式在 application worker coordinator 中、handler 执行之前完成解析，因此 handlers 接收到的是普通解析后的 config map，无需感知表达式机制。
 
 已暴露的运行相关端点包括：
 

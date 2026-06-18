@@ -84,6 +84,7 @@ bootstrap -> adapters -> application -> domain
 - `GET /api/workflow-runs/{runId}` 查询单个 Workflow Run。
 - `GET /api/workflow-runs/{runId}/tasks` 查询 Task Run 列表（状态、重试、输出、错误、开始/结束时间）。
 - `GET /api/workflow-runs/{runId}/timeline?limit=200` 查询结构化 timeline 事件。
+- Task config 支持 `${tasks.<taskId>.output...}` 表达式，用于将上游任务输出传递给下游 handler 输入；第一版支持对 JSON 输出字符串的对象字段和数组索引访问。
 
 Worker 可由创建事件触发，也可通过保守的 PENDING-run scanner 补偿事件丢失；scanner 不自动重置或失败化卡住的 RUNNING run/task。worker core 保持框架中立，Spring 与 Micronaut runtime 均复用同一份 application/domain/worker core。
 

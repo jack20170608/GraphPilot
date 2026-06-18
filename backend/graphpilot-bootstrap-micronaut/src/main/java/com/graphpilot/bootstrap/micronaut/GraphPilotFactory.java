@@ -1,5 +1,6 @@
 package com.graphpilot.bootstrap.micronaut;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRepository;
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRunRepository;
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRunTimelineRepository;
@@ -9,6 +10,7 @@ import com.graphpilot.adapter.persistence.memory.UuidTimelineEventIdGenerator;
 import com.graphpilot.adapter.persistence.memory.UuidWorkflowIdGenerator;
 import com.graphpilot.adapter.persistence.memory.UuidWorkflowRunIdGenerator;
 import com.graphpilot.adapter.worker.handler.TaskHandlerRegistry;
+import com.graphpilot.adapter.worker.json.JacksonJsonValueCodec;
 import com.graphpilot.adapter.worker.micronaut.MicronautEventPublisher;
 import com.graphpilot.adapter.worker.micronaut.WorkflowRunCreatedApplicationEvent;
 import com.graphpilot.adapter.worker.micronaut.WorkflowRunEventListener;
@@ -18,6 +20,7 @@ import com.graphpilot.application.execution.port.in.ScanPendingWorkflowRunsUseCa
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
 import com.graphpilot.application.execution.port.in.TriggerWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.out.EventPublisherPort;
+import com.graphpilot.application.execution.port.out.JsonValueCodecPort;
 import com.graphpilot.application.execution.port.out.TaskRunIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.TimelineEventIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunIdGeneratorPort;
@@ -111,9 +114,15 @@ final class GraphPilotFactory {
     }
 
     @Singleton
+    JsonValueCodecPort jsonValueCodecPort() {
+        return new JacksonJsonValueCodec(new ObjectMapper());
+    }
+
+    @Singleton
     TaskConfigExpressionResolver taskConfigExpressionResolver(
-            WorkflowRunRepository workflowRunRepository) {
-        return new TaskConfigExpressionResolver(workflowRunRepository);
+            WorkflowRunRepository workflowRunRepository,
+            JsonValueCodecPort jsonValueCodecPort) {
+        return new TaskConfigExpressionResolver(workflowRunRepository, jsonValueCodecPort);
     }
 
     @Singleton

@@ -3,7 +3,10 @@ package com.graphpilot.application.execution.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphpilot.application.execution.TaskConfigExpressionException;
+import com.graphpilot.application.execution.port.out.JsonValueCodecPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.dag.TaskId;
@@ -33,7 +36,29 @@ class TaskConfigExpressionResolverTest {
     @BeforeEach
     void setUp() {
         repository = new FakeWorkflowRunRepository();
-        resolver = new TaskConfigExpressionResolver(repository);
+        resolver = new TaskConfigExpressionResolver(repository, new JacksonJsonValueCodec());
+    }
+
+    private static final class JacksonJsonValueCodec implements JsonValueCodecPort {
+        private final ObjectMapper objectMapper = new ObjectMapper();
+
+        @Override
+        public Object parse(String json) {
+            try {
+                return objectMapper.readValue(json, Object.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to parse JSON", e);
+            }
+        }
+
+        @Override
+        public String stringify(Object value) {
+            try {
+                return objectMapper.writeValueAsString(value);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to stringify value to JSON", e);
+            }
+        }
     }
 
     @Test
@@ -244,6 +269,40 @@ class TaskConfigExpressionResolverTest {
                 TaskConfig.of(Map.of("id", "${tasks.extract.output.id}")), RUN_ID))
                 .isInstanceOf(TaskConfigExpressionException.class)
                 .hasMessageContaining("Duplicate task ID in workflow run: extract");
+    }
+
+    @Test
+    void resolvesConsecutiveArrayIndexes() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED,
+                "{\"matrix\":[[\"a\",\"b\"],[\"c\",\"d\"]]}"));
+
+        TaskConfig resolved = resolver.resolve(
+                TaskConfig.of(Map.of("value", "${tasks.extract.output.matrix[1][0]}")), RUN_ID);
+
+        assertThat(resolved.asMap()).containsEntry("value", "c");
+    }
+
+    @Test
+    void wholeStringExpressionReturnsNullForJsonNull() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED,
+                "{\"result\":null}"));
+
+        java.util.HashMap<String, Object> map = new java.util.HashMap<>();
+        map.put("value", "${tasks.extract.output.result}");
+        TaskConfig resolved = resolver.resolve(TaskConfig.of(map), RUN_ID);
+
+        assertThat(resolved.asMap()).containsEntry("value", null);
+    }
+
+    @Test
+    void embeddedExpressionStringifiesJsonNullToNullLiteral() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED,
+                "{\"result\":null}"));
+
+        TaskConfig resolved = resolver.resolve(
+                TaskConfig.of(Map.of("value", "result=${tasks.extract.output.result}")), RUN_ID);
+
+        assertThat(resolved.asMap()).containsEntry("value", "result=null");
     }
 
     @Test

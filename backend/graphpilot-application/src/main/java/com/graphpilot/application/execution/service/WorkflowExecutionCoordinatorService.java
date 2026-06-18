@@ -46,39 +46,6 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
             TaskHandlerProvider taskHandlerProvider,
-            ClockPort clock) {
-        this(workflowRepository, workflowRunRepository, taskHandlerProvider,
-                clock, attemptNumber -> { }, TimelineRecorder.noop(clock),
-                new TaskConfigExpressionResolver(workflowRunRepository));
-    }
-
-    public WorkflowExecutionCoordinatorService(
-            WorkflowRepository workflowRepository,
-            WorkflowRunRepository workflowRunRepository,
-            TaskHandlerProvider taskHandlerProvider,
-            ClockPort clock,
-            BackoffStrategy backoffStrategy) {
-        this(workflowRepository, workflowRunRepository, taskHandlerProvider,
-                clock, backoffStrategy, TimelineRecorder.noop(clock),
-                new TaskConfigExpressionResolver(workflowRunRepository));
-    }
-
-    public WorkflowExecutionCoordinatorService(
-            WorkflowRepository workflowRepository,
-            WorkflowRunRepository workflowRunRepository,
-            TaskHandlerProvider taskHandlerProvider,
-            ClockPort clock,
-            BackoffStrategy backoffStrategy,
-            TimelineRecorder timelineRecorder) {
-        this(workflowRepository, workflowRunRepository, taskHandlerProvider,
-                clock, backoffStrategy, timelineRecorder,
-                new TaskConfigExpressionResolver(workflowRunRepository));
-    }
-
-    public WorkflowExecutionCoordinatorService(
-            WorkflowRepository workflowRepository,
-            WorkflowRunRepository workflowRunRepository,
-            TaskHandlerProvider taskHandlerProvider,
             ClockPort clock,
             BackoffStrategy backoffStrategy,
             TimelineRecorder timelineRecorder,
@@ -234,8 +201,8 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         TaskConfig resolvedConfig;
         try {
             resolvedConfig = expressionResolver.resolve(taskDef.config(), taskRun.workflowRunId());
-        } catch (TaskConfigExpressionException e) {
-            failTaskForExpressionError(runningTaskRun, e.getMessage());
+        } catch (RuntimeException e) {
+            failTaskForExpressionError(runningTaskRun, e);
             return;
         }
 
@@ -275,11 +242,12 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
         }
     }
 
-    private void failTaskForExpressionError(TaskRun taskRun, String message) {
+    private void failTaskForExpressionError(TaskRun taskRun, RuntimeException e) {
         Instant now = clock.now();
+        String message = "Task config expression failed: " + e.getClass().getSimpleName() + ": " + e.getMessage();
         TaskRun failed = taskRun.withStatus(TaskRunStatus.FAILED)
                 .withFinishedAt(now)
-                .withErrorMessage("Task config expression failed: " + message)
+                .withErrorMessage(message)
                 .withOutput(null);
         workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), failed);
         timelineRecorder.task(taskRun.workflowRunId(), taskRun.id(), taskRun.taskId(),

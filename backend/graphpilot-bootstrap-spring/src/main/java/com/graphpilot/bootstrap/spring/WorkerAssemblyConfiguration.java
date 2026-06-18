@@ -1,10 +1,13 @@
 package com.graphpilot.bootstrap.spring;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.graphpilot.adapter.worker.json.JacksonJsonValueCodec;
 import com.graphpilot.adapter.worker.spring.WorkflowRunEventListener;
 import com.graphpilot.adapter.worker.handler.TaskHandlerRegistry;
 import com.graphpilot.application.execution.port.in.ExecuteWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.in.ScanPendingWorkflowRunsUseCase;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
+import com.graphpilot.application.execution.port.out.JsonValueCodecPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.application.execution.service.FixedBackoffStrategy;
 import com.graphpilot.application.execution.service.ScanPendingWorkflowRunsService;
@@ -41,9 +44,15 @@ class WorkerAssemblyConfiguration {
     }
 
     @Bean
+    JsonValueCodecPort jsonValueCodecPort() {
+        return new JacksonJsonValueCodec(new ObjectMapper());
+    }
+
+    @Bean
     TaskConfigExpressionResolver taskConfigExpressionResolver(
-            WorkflowRunRepository workflowRunRepository) {
-        return new TaskConfigExpressionResolver(workflowRunRepository);
+            WorkflowRunRepository workflowRunRepository,
+            JsonValueCodecPort jsonValueCodecPort) {
+        return new TaskConfigExpressionResolver(workflowRunRepository, jsonValueCodecPort);
     }
 
     @Bean

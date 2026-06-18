@@ -1,8 +1,7 @@
 package com.graphpilot.application.execution.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphpilot.application.execution.TaskConfigExpressionException;
+import com.graphpilot.application.execution.port.out.JsonValueCodecPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.execution.TaskRun;
@@ -22,13 +21,15 @@ public final class TaskConfigExpressionResolver {
     private static final Pattern EXPRESSION = Pattern.compile("\\$\\{([^}]+)}");
     private static final String PREFIX = "tasks.";
     private static final String OUTPUT_SEGMENT = ".output";
-    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final WorkflowRunRepository workflowRunRepository;
+    private final JsonValueCodecPort jsonCodec;
 
-    public TaskConfigExpressionResolver(WorkflowRunRepository workflowRunRepository) {
+    public TaskConfigExpressionResolver(WorkflowRunRepository workflowRunRepository,
+            JsonValueCodecPort jsonCodec) {
         this.workflowRunRepository = Objects.requireNonNull(
                 workflowRunRepository, "workflowRunRepository must not be null");
+        this.jsonCodec = Objects.requireNonNull(jsonCodec, "jsonCodec must not be null");
     }
 
     public TaskConfig resolve(TaskConfig config, WorkflowRunId workflowRunId) {
@@ -152,8 +153,8 @@ public final class TaskConfigExpressionResolver {
 
     private Object parseOutputJson(String taskId, String output) {
         try {
-            return JSON.readValue(output, Object.class);
-        } catch (JsonProcessingException e) {
+            return jsonCodec.parse(output);
+        } catch (RuntimeException e) {
             throw new TaskConfigExpressionException("Task output is not valid JSON: " + taskId, e);
         }
     }
@@ -214,10 +215,13 @@ public final class TaskConfigExpressionResolver {
     private String toEmbeddedString(Object value) {
         if (value instanceof Map<?, ?> || value instanceof List<?>) {
             try {
-                return JSON.writeValueAsString(value);
-            } catch (JsonProcessingException e) {
+                return jsonCodec.stringify(value);
+            } catch (RuntimeException e) {
                 throw new TaskConfigExpressionException("Expression result cannot be serialized", e);
             }
+        }
+        if (value == null) {
+            return "null";
         }
         return String.valueOf(value);
     }

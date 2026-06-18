@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphpilot.application.execution.port.in.TaskHandler;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
+import com.graphpilot.application.execution.port.out.JsonValueCodecPort;
 import com.graphpilot.application.execution.port.out.TimelineEventIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
 import com.graphpilot.application.execution.port.out.WorkflowRunTimelineRepository;
@@ -84,7 +87,7 @@ class WorkflowExecutionCoordinatorServiceTest {
                 fixedClock(),
                 backoffStrategy,
                 new TimelineRecorder(timelineRepository, new QueueTimelineEventIdGenerator(), fixedClock()),
-                new TaskConfigExpressionResolver(workflowRunRepository));
+                new TaskConfigExpressionResolver(workflowRunRepository, new JacksonJsonValueCodec()));
     }
 
     @Test
@@ -420,6 +423,59 @@ class WorkflowExecutionCoordinatorServiceTest {
                 .isEqualTo(WorkflowRunStatus.FAILED);
     }
 
+    @Test
+    void executeFailsTaskWithoutRetryWhenUnexpectedRuntimeExceptionDuringExpressionResolution() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "load", TaskRunStatus.PENDING, 0));
+        givenWorkflow(workflowId, new DagDefinition(
+                List.of(new TaskDefinition(
+                        TaskId.of("load"),
+                        "Load",
+                        "mock",
+                        TaskConfig.of(Map.of("value", "${tasks.missing.output}")))),
+                List.of()));
+
+        // Create a coordinator whose resolver will encounter an unexpected RuntimeException
+        // on the second call to findTaskRunsByRunId (the first is in the main execution loop,
+        // the second is inside expressionResolver.resolve).
+        WorkflowRunRepository throwingRepository = new FakeWorkflowRunRepository() {
+            private int callCount = 0;
+
+            @Override
+            public List<TaskRun> findTaskRunsByRunId(WorkflowRunId id) {
+                callCount++;
+                if (id.equals(runId) && callCount == 2) {
+                    throw new RuntimeException("Database connection lost");
+                }
+                return super.findTaskRunsByRunId(id);
+            }
+        };
+        throwingRepository.save(
+                createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId),
+                List.of(createTaskRun(runId, "load", TaskRunStatus.PENDING, 0)));
+        WorkflowExecutionCoordinatorService throwingCoordinator = new WorkflowExecutionCoordinatorService(
+                workflowRepository,
+                throwingRepository,
+                taskHandlerProvider,
+                fixedClock(),
+                backoffStrategy,
+                new TimelineRecorder(timelineRepository, new QueueTimelineEventIdGenerator(), fixedClock()),
+                new TaskConfigExpressionResolver(throwingRepository, new JacksonJsonValueCodec()));
+
+        throwingCoordinator.execute(runId);
+
+        TaskRun failed = throwingRepository.findTaskRunsByRunId(runId).getFirst();
+        assertThat(taskHandler.invocations).isEmpty();
+        assertThat(failed.status()).isEqualTo(TaskRunStatus.FAILED);
+        assertThat(failed.retryCount()).isZero();
+        assertThat(failed.errorMessage()).isEqualTo(
+                "Task config expression failed: RuntimeException: Database connection lost");
+        assertThat(throwingRepository.findRunById(runId).orElseThrow().status())
+                .isEqualTo(WorkflowRunStatus.FAILED);
+    }
+
     private List<TaskRunStatus> taskRunStatuses(WorkflowRunId runId) {
         return workflowRunRepository.findTaskRunsByRunId(runId).stream()
                 .map(TaskRun::status)
@@ -487,11 +543,33 @@ class WorkflowExecutionCoordinatorServiceTest {
         return () -> NOW;
     }
 
+    private static final class JacksonJsonValueCodec implements JsonValueCodecPort {
+        private final ObjectMapper objectMapper = new ObjectMapper();
+
+        @Override
+        public Object parse(String json) {
+            try {
+                return objectMapper.readValue(json, Object.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to parse JSON", e);
+            }
+        }
+
+        @Override
+        public String stringify(Object value) {
+            try {
+                return objectMapper.writeValueAsString(value);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to stringify value to JSON", e);
+            }
+        }
+    }
+
     /**
      * Stateful in-memory repository that reflects status updates, so multi-wave
      * execution, retries, and skip cascades can be exercised against real state.
      */
-    private static final class FakeWorkflowRunRepository implements WorkflowRunRepository {
+    private static class FakeWorkflowRunRepository implements WorkflowRunRepository {
 
         private final Map<WorkflowRunId, WorkflowRun> runs = new HashMap<>();
         private final Map<WorkflowRunId, List<TaskRun>> taskRuns = new HashMap<>();

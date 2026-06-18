@@ -1,5 +1,6 @@
 package com.graphpilot.domain.dag;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -9,7 +10,7 @@ public record TaskConfig(Map<String, Object> values) {
 
     public TaskConfig {
         Objects.requireNonNull(values, "values must not be null");
-        values = Map.copyOf(new LinkedHashMap<>(values));
+        values = Collections.unmodifiableMap(new LinkedHashMap<>(values));
     }
 
     public static TaskConfig empty() {

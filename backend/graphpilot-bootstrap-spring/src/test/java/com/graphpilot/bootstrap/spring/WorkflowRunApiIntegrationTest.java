@@ -56,11 +56,14 @@ class WorkflowRunApiIntegrationTest {
         assertThat(activateWorkflow(restTemplate, workflowId).getStatusCode()).isEqualTo(HttpStatus.OK);
 
         ResponseEntity<Map<String, Object>> triggerResponse = triggerWorkflowRun(restTemplate, workflowId);
+        assertThat(triggerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(triggerResponse.getBody()).containsKey("id");
         String runId = triggerResponse.getBody().get("id").toString();
         Map<String, Object> finalRun = awaitWorkflowRunTerminal(restTemplate, runId);
-        assertWorkflowRun(finalRun, runId, workflowId, "SUCCEEDED");
+        assertWorkflowRun(finalRun, runId, workflowId, EXPECTED_TERMINAL_STATUS);
 
         ResponseEntity<List<Map<String, Object>>> taskRunsResponse = listTaskRuns(restTemplate, runId);
+        assertThat(taskRunsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(taskRunsResponse.getBody())
                 .filteredOn(task -> task.get("taskId").equals("load"))
                 .singleElement()

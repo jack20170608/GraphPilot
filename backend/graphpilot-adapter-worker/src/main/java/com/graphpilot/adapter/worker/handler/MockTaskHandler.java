@@ -34,7 +34,9 @@ public class MockTaskHandler implements TaskHandler {
             Object success = input.get("success");
             if (success instanceof Boolean fixedSuccess) {
                 if (fixedSuccess) {
-                    return TaskResult.success(input.getOrDefault("output", "Mock task completed successfully").toString());
+                    Object output = input.get("output");
+                    String message = output != null ? output.toString() : "Mock task completed successfully";
+                    return TaskResult.success(message);
                 }
                 return TaskResult.failure("MOCK_ERROR", "Mock task failed by config");
             }

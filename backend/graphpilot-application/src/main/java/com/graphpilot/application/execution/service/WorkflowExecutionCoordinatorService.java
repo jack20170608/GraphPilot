@@ -222,23 +222,24 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
     }
 
     private void executeTask(TaskRun taskRun, TaskDefinition taskDef, Instant defaultStartedAt) {
+        // Mark as RUNNING before expression resolution so that TASK_STARTED is always
+        // recorded before any terminal event, and startedAt is populated on failure.
+        Instant startedAt = taskRun.startedAt() != null ? taskRun.startedAt() : defaultStartedAt;
+        TaskRun runningTaskRun = taskRun.withStatus(TaskRunStatus.RUNNING).withStartedAt(startedAt);
+        workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), runningTaskRun);
+        timelineRecorder.task(taskRun.workflowRunId(), taskRun.id(), taskRun.taskId(),
+                TimelineEventType.TASK_STARTED,
+                "Task " + taskRun.taskId().value() + " started");
+
         TaskConfig resolvedConfig;
         try {
             resolvedConfig = expressionResolver.resolve(taskDef.config(), taskRun.workflowRunId());
         } catch (TaskConfigExpressionException e) {
-            failTaskForExpressionError(taskRun, e.getMessage());
+            failTaskForExpressionError(runningTaskRun, e.getMessage());
             return;
         }
 
         TaskHandler handler = taskHandlerProvider.getHandler(taskRun.taskType());
-
-        // Mark as RUNNING
-        Instant startedAt = taskRun.startedAt() != null ? taskRun.startedAt() : defaultStartedAt;
-        workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(),
-                taskRun.withStatus(TaskRunStatus.RUNNING).withStartedAt(startedAt));
-        timelineRecorder.task(taskRun.workflowRunId(), taskRun.id(), taskRun.taskId(),
-                TimelineEventType.TASK_STARTED,
-                "Task " + taskRun.taskId().value() + " started");
 
         TaskResult result;
         try {

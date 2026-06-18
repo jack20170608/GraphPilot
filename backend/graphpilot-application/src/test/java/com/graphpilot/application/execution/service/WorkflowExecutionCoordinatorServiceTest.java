@@ -6,7 +6,9 @@ import static org.mockito.Mockito.when;
 
 import com.graphpilot.application.execution.port.in.TaskHandler;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
+import com.graphpilot.application.execution.port.out.TimelineEventIdGeneratorPort;
 import com.graphpilot.application.execution.port.out.WorkflowRunRepository;
+import com.graphpilot.application.execution.port.out.WorkflowRunTimelineRepository;
 import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.DagDefinition;
@@ -18,14 +20,18 @@ import com.graphpilot.domain.execution.TaskResult;
 import com.graphpilot.domain.execution.TaskRun;
 import com.graphpilot.domain.execution.TaskRunId;
 import com.graphpilot.domain.execution.TaskRunStatus;
+import com.graphpilot.domain.execution.TimelineEventId;
+import com.graphpilot.domain.execution.TimelineEventType;
 import com.graphpilot.domain.execution.WorkflowRun;
 import com.graphpilot.domain.execution.WorkflowRunId;
 import com.graphpilot.domain.execution.WorkflowRunStatus;
+import com.graphpilot.domain.execution.WorkflowRunTimelineEvent;
 import com.graphpilot.domain.workflow.Workflow;
 import com.graphpilot.domain.workflow.WorkflowId;
 import com.graphpilot.domain.workflow.WorkflowName;
 import com.graphpilot.domain.workflow.WorkflowStatus;
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +57,7 @@ class WorkflowExecutionCoordinatorServiceTest {
     private ConfigurableTaskHandler taskHandler;
     private TaskHandlerProvider taskHandlerProvider;
     private RecordingBackoffStrategy backoffStrategy;
+    private RecordingTimelineRepository timelineRepository;
     private WorkflowExecutionCoordinatorService coordinator;
 
     @BeforeEach
@@ -58,6 +65,7 @@ class WorkflowExecutionCoordinatorServiceTest {
         workflowRunRepository = new FakeWorkflowRunRepository();
         taskHandler = new ConfigurableTaskHandler();
         backoffStrategy = new RecordingBackoffStrategy();
+        timelineRepository = new RecordingTimelineRepository();
         taskHandlerProvider = new TaskHandlerProvider() {
             @Override
             public TaskHandler getHandler(String taskType) {
@@ -75,7 +83,7 @@ class WorkflowExecutionCoordinatorServiceTest {
                 taskHandlerProvider,
                 fixedClock(),
                 backoffStrategy,
-                TimelineRecorder.noop(fixedClock()),
+                new TimelineRecorder(timelineRepository, new QueueTimelineEventIdGenerator(), fixedClock()),
                 new TaskConfigExpressionResolver(workflowRunRepository));
     }
 
@@ -376,7 +384,38 @@ class WorkflowExecutionCoordinatorServiceTest {
         assertThat(taskHandler.invocations).isEmpty();
         assertThat(failed.status()).isEqualTo(TaskRunStatus.FAILED);
         assertThat(failed.retryCount()).isZero();
+        assertThat(failed.startedAt()).isEqualTo(NOW);
+        assertThat(failed.finishedAt()).isEqualTo(NOW);
         assertThat(failed.errorMessage()).contains("Task config expression failed");
+        assertThat(workflowRunRepository.findRunById(runId).orElseThrow().status())
+                .isEqualTo(WorkflowRunStatus.FAILED);
+        assertThat(timelineRepository.taskEventsFor(runId, TaskId.of("load")))
+                .extracting(WorkflowRunTimelineEvent::type)
+                .containsExactly(TimelineEventType.TASK_STARTED, TimelineEventType.TASK_FAILED);
+    }
+
+    @Test
+    void executePreservesRetryCountWhenExpressionResolutionFails() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(
+                createTaskRun(runId, "load", TaskRunStatus.PENDING, 0, 2, 3));
+        givenWorkflow(workflowId, new DagDefinition(
+                List.of(new TaskDefinition(
+                        TaskId.of("load"),
+                        "Load",
+                        "mock",
+                        TaskConfig.of(Map.of("value", "${tasks.missing.output}")))),
+                List.of()));
+
+        coordinator.execute(runId);
+
+        TaskRun failed = workflowRunRepository.findTaskRunsByRunId(runId).getFirst();
+        assertThat(taskHandler.invocations).isEmpty();
+        assertThat(failed.status()).isEqualTo(TaskRunStatus.FAILED);
+        assertThat(failed.retryCount()).isEqualTo(2);
+        assertThat(backoffStrategy.awaitedAttempts).isEmpty();
         assertThat(workflowRunRepository.findRunById(runId).orElseThrow().status())
                 .isEqualTo(WorkflowRunStatus.FAILED);
     }
@@ -424,6 +463,10 @@ class WorkflowExecutionCoordinatorServiceTest {
     }
 
     private static TaskRun createTaskRun(WorkflowRunId runId, String taskId, TaskRunStatus status, int position) {
+        return createTaskRun(runId, taskId, status, position, 0, 3);
+    }
+
+    private static TaskRun createTaskRun(WorkflowRunId runId, String taskId, TaskRunStatus status, int position, int retryCount, int maxRetries) {
         return TaskRun.restore(
                 TaskRunId.of("run-" + taskId),
                 runId,
@@ -432,8 +475,8 @@ class WorkflowExecutionCoordinatorServiceTest {
                 "mock",
                 status,
                 position,
-                0,
-                3,
+                retryCount,
+                maxRetries,
                 null,
                 null,
                 null,
@@ -594,6 +637,61 @@ class WorkflowExecutionCoordinatorServiceTest {
         @Override
         public void awaitRetry(int attemptNumber) {
             awaitedAttempts.add(attemptNumber);
+        }
+    }
+
+    /**
+     * In-memory timeline repository that records all saved events for test assertions.
+     */
+    private static final class RecordingTimelineRepository implements WorkflowRunTimelineRepository {
+
+        private final List<WorkflowRunTimelineEvent> events = new ArrayList<>();
+
+        @Override
+        public WorkflowRunTimelineEvent save(WorkflowRunTimelineEvent event) {
+            events.add(event);
+            return event;
+        }
+
+        @Override
+        public List<WorkflowRunTimelineEvent> findByWorkflowRunId(WorkflowRunId workflowRunId, int limit) {
+            return events.stream()
+                    .filter(event -> event.workflowRunId().equals(workflowRunId))
+                    .limit(limit)
+                    .toList();
+        }
+
+        List<WorkflowRunTimelineEvent> taskEventsFor(WorkflowRunId runId, TaskId taskId) {
+            return events.stream()
+                    .filter(event -> event.workflowRunId().equals(runId)
+                            && event.taskId() != null
+                            && event.taskId().equals(taskId))
+                    .toList();
+        }
+    }
+
+    /**
+     * Id generator that yields a fixed sequence of timeline event IDs.
+     */
+    private static final class QueueTimelineEventIdGenerator implements TimelineEventIdGeneratorPort {
+
+        private final ArrayDeque<TimelineEventId> ids = new ArrayDeque<>(
+                List.of(
+                        TimelineEventId.of("event-1"),
+                        TimelineEventId.of("event-2"),
+                        TimelineEventId.of("event-3"),
+                        TimelineEventId.of("event-4"),
+                        TimelineEventId.of("event-5"),
+                        TimelineEventId.of("event-6"),
+                        TimelineEventId.of("event-7"),
+                        TimelineEventId.of("event-8"),
+                        TimelineEventId.of("event-9"),
+                        TimelineEventId.of("event-10")));
+
+        @Override
+        public TimelineEventId nextTimelineEventId() {
+            TimelineEventId id = ids.pollFirst();
+            return id != null ? id : TimelineEventId.of("event-overflow");
         }
     }
 }

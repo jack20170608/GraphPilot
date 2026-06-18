@@ -26,6 +26,7 @@ import com.graphpilot.application.execution.port.out.WorkflowRunTimelineReposito
 import com.graphpilot.application.execution.service.FixedBackoffStrategy;
 import com.graphpilot.application.execution.service.QueryWorkflowRunService;
 import com.graphpilot.application.execution.service.ScanPendingWorkflowRunsService;
+import com.graphpilot.application.execution.service.TaskConfigExpressionResolver;
 import com.graphpilot.application.execution.service.TimelineRecorder;
 import com.graphpilot.application.execution.service.WorkflowExecutionCoordinatorService;
 import com.graphpilot.application.execution.service.TriggerWorkflowRunService;
@@ -110,12 +111,19 @@ final class GraphPilotFactory {
     }
 
     @Singleton
+    TaskConfigExpressionResolver taskConfigExpressionResolver(
+            WorkflowRunRepository workflowRunRepository) {
+        return new TaskConfigExpressionResolver(workflowRunRepository);
+    }
+
+    @Singleton
     ExecuteWorkflowRunUseCase executeWorkflowRunUseCase(
             WorkflowRepository workflowRepository,
             WorkflowRunRepository workflowRunRepository,
             TaskHandlerProvider taskHandlerProvider,
             ClockPort clock,
-            TimelineRecorder timelineRecorder) {
+            TimelineRecorder timelineRecorder,
+            TaskConfigExpressionResolver taskConfigExpressionResolver) {
         // Zero backoff keeps the PoC fast; the framework-free core is unchanged.
         return new WorkflowExecutionCoordinatorService(
                 workflowRepository,
@@ -123,7 +131,8 @@ final class GraphPilotFactory {
                 taskHandlerProvider,
                 clock,
                 new FixedBackoffStrategy(Duration.ZERO),
-                timelineRecorder);
+                timelineRecorder,
+                taskConfigExpressionResolver);
     }
 
     @Singleton

@@ -33,6 +33,41 @@ class WorkflowRunApiIntegrationTest {
     }
 
     @Test
+    void resolvesTaskConfigExpressionFromUpstreamOutput() {
+        Map<String, Object> extractConfig = Map.of(
+                "success", true,
+                "delayMs", 0,
+                "output", "{\"id\":\"abc\"}");
+        Map<String, Object> loadConfig = Map.of(
+                "success", true,
+                "delayMs", 0,
+                "output", "loaded ${tasks.extract.output.id}");
+        Map<String, Object> requestBody = Map.of(
+                "name", "Expression ETL",
+                "tasks", List.of(
+                        Map.of("id", "extract", "name", "Extract", "type", "mock", "config", extractConfig),
+                        Map.of("id", "load", "name", "Load", "type", "mock", "config", loadConfig)),
+                "edges", List.of(
+                        Map.of("fromTaskId", "extract", "toTaskId", "load")));
+
+        ResponseEntity<Map<String, Object>> createWorkflowResponse = postWorkflow(restTemplate, requestBody);
+        assertThat(createWorkflowResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        String workflowId = createWorkflowResponse.getBody().get("id").toString();
+        assertThat(activateWorkflow(restTemplate, workflowId).getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ResponseEntity<Map<String, Object>> triggerResponse = triggerWorkflowRun(restTemplate, workflowId);
+        String runId = triggerResponse.getBody().get("id").toString();
+        Map<String, Object> finalRun = awaitWorkflowRunTerminal(restTemplate, runId);
+        assertWorkflowRun(finalRun, runId, workflowId, "SUCCEEDED");
+
+        ResponseEntity<List<Map<String, Object>>> taskRunsResponse = listTaskRuns(restTemplate, runId);
+        assertThat(taskRunsResponse.getBody())
+                .filteredOn(task -> task.get("taskId").equals("load"))
+                .singleElement()
+                .satisfies(task -> assertThat(task.get("output")).isEqualTo("loaded abc"));
+    }
+
+    @Test
     void triggersAndExecutesWorkflowRunToSucceededThroughHttpApi() {
         ResponseEntity<Map<String, Object>> createWorkflowResponse = postWorkflow(restTemplate, workflowRequestBody("Memory Run ETL"));
         assertThat(createWorkflowResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);

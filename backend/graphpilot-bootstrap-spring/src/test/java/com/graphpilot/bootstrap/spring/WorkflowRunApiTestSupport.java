@@ -33,6 +33,16 @@ final class WorkflowRunApiTestSupport {
                 new ParameterizedTypeReference<>() {});
     }
 
+    static ResponseEntity<Map<String, Object>> postWorkflow(
+            TestRestTemplate restTemplate,
+            Map<String, Object> requestBody) {
+        return restTemplate.exchange(
+                "/api/workflows",
+                HttpMethod.POST,
+                new HttpEntity<>(requestBody, jsonHeaders()),
+                new ParameterizedTypeReference<>() {});
+    }
+
     static ResponseEntity<Map<String, Object>> activateWorkflow(
             TestRestTemplate restTemplate,
             String workflowId) {
@@ -161,9 +171,13 @@ final class WorkflowRunApiTestSupport {
         }
     }
 
-    private static HttpEntity<String> jsonEntity(String requestBody) {
+    private static HttpHeaders jsonHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        return new HttpEntity<>(requestBody, headers);
+        return headers;
+    }
+
+    private static HttpEntity<String> jsonEntity(String requestBody) {
+        return new HttpEntity<>(requestBody, jsonHeaders());
     }
 }

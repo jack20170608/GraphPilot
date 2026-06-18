@@ -33,9 +33,10 @@ public class MockTaskHandler implements TaskHandler {
 
             Object success = input.get("success");
             if (success instanceof Boolean fixedSuccess) {
-                return fixedSuccess
-                        ? TaskResult.success("Mock task completed successfully")
-                        : TaskResult.failure("MOCK_ERROR", "Mock task failed by config");
+                if (fixedSuccess) {
+                    return TaskResult.success(input.getOrDefault("output", "Mock task completed successfully").toString());
+                }
+                return TaskResult.failure("MOCK_ERROR", "Mock task failed by config");
             }
 
             // 95% success rate for mock when no deterministic config is provided.

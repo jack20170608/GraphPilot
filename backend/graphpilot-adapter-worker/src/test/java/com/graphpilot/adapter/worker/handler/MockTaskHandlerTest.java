@@ -69,6 +69,17 @@ class MockTaskHandlerTest {
         assertThat(result.status()).isEqualTo(TaskRunStatus.FAILED);
     }
 
+    @Test
+    void executeUsesConfiguredOutputWhenForcedToSucceed() {
+        TaskResult result = handler.execute(
+                createTaskRun(TaskRunStatus.PENDING),
+                createTaskDefinition(),
+                Map.of("success", true, "delayMs", 0, "output", "{\"id\":\"abc\"}"));
+
+        assertThat(result.status()).isEqualTo(TaskRunStatus.SUCCEEDED);
+        assertThat(result.output()).contains("{\"id\":\"abc\"}");
+    }
+
     private TaskRun createTaskRun(TaskRunStatus status) {
         return TaskRun.restore(
                 TaskRunId.of("task-run-1"),

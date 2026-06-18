@@ -74,7 +74,9 @@ class WorkflowExecutionCoordinatorServiceTest {
                 workflowRunRepository,
                 taskHandlerProvider,
                 fixedClock(),
-                backoffStrategy);
+                backoffStrategy,
+                TimelineRecorder.noop(fixedClock()),
+                new TaskConfigExpressionResolver(workflowRunRepository));
     }
 
     @Test
@@ -329,6 +331,54 @@ class WorkflowExecutionCoordinatorServiceTest {
         coordinator.execute(runId);
 
         assertThat(backoffStrategy.awaitedAttempts).isEmpty();
+    }
+
+    @Test
+    void executePassesResolvedTaskConfigToHandler() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(
+                createTaskRun(runId, "extract", TaskRunStatus.SUCCEEDED, 0).withOutput("{\"id\":\"abc\"}"));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "load", TaskRunStatus.PENDING, 1));
+        givenWorkflow(workflowId, new DagDefinition(
+                List.of(
+                        new TaskDefinition(TaskId.of("extract"), "Extract", "mock"),
+                        new TaskDefinition(
+                                TaskId.of("load"),
+                                "Load",
+                                "mock",
+                                TaskConfig.of(Map.of("value", "${tasks.extract.output.id}")))),
+                List.of(new DagEdge(TaskId.of("extract"), TaskId.of("load")))));
+
+        coordinator.execute(runId);
+
+        assertThat(taskHandler.receivedInputs).contains(Map.of("value", "abc"));
+    }
+
+    @Test
+    void executeFailsTaskWithoutRetryWhenExpressionResolutionFails() {
+        WorkflowRunId runId = WorkflowRunId.of("run-1");
+        WorkflowId workflowId = WorkflowId.of("workflow-1");
+        workflowRunRepository.store(createWorkflowRun(runId, WorkflowRunStatus.PENDING, workflowId));
+        workflowRunRepository.storeTaskRun(createTaskRun(runId, "load", TaskRunStatus.PENDING, 0));
+        givenWorkflow(workflowId, new DagDefinition(
+                List.of(new TaskDefinition(
+                        TaskId.of("load"),
+                        "Load",
+                        "mock",
+                        TaskConfig.of(Map.of("value", "${tasks.missing.output}")))),
+                List.of()));
+
+        coordinator.execute(runId);
+
+        TaskRun failed = workflowRunRepository.findTaskRunsByRunId(runId).getFirst();
+        assertThat(taskHandler.invocations).isEmpty();
+        assertThat(failed.status()).isEqualTo(TaskRunStatus.FAILED);
+        assertThat(failed.retryCount()).isZero();
+        assertThat(failed.errorMessage()).contains("Task config expression failed");
+        assertThat(workflowRunRepository.findRunById(runId).orElseThrow().status())
+                .isEqualTo(WorkflowRunStatus.FAILED);
     }
 
     private List<TaskRunStatus> taskRunStatuses(WorkflowRunId runId) {

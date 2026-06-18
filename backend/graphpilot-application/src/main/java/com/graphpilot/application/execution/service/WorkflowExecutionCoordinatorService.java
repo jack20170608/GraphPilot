@@ -1,5 +1,6 @@
 package com.graphpilot.application.execution.service;
 
+import com.graphpilot.application.execution.TaskConfigExpressionException;
 import com.graphpilot.application.execution.port.in.ExecuteWorkflowRunUseCase;
 import com.graphpilot.application.execution.port.in.TaskHandler;
 import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
@@ -8,6 +9,7 @@ import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
 import com.graphpilot.domain.dag.DagDefinition;
 import com.graphpilot.domain.dag.DagEdge;
+import com.graphpilot.domain.dag.TaskConfig;
 import com.graphpilot.domain.dag.TaskDefinition;
 import com.graphpilot.domain.dag.TaskId;
 import com.graphpilot.domain.execution.TaskRun;
@@ -38,6 +40,7 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
     private final ClockPort clock;
     private final BackoffStrategy backoffStrategy;
     private final TimelineRecorder timelineRecorder;
+    private final TaskConfigExpressionResolver expressionResolver;
 
     public WorkflowExecutionCoordinatorService(
             WorkflowRepository workflowRepository,
@@ -45,7 +48,8 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             TaskHandlerProvider taskHandlerProvider,
             ClockPort clock) {
         this(workflowRepository, workflowRunRepository, taskHandlerProvider,
-                clock, attemptNumber -> { }, TimelineRecorder.noop(clock));
+                clock, attemptNumber -> { }, TimelineRecorder.noop(clock),
+                new TaskConfigExpressionResolver(workflowRunRepository));
     }
 
     public WorkflowExecutionCoordinatorService(
@@ -55,7 +59,8 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             ClockPort clock,
             BackoffStrategy backoffStrategy) {
         this(workflowRepository, workflowRunRepository, taskHandlerProvider,
-                clock, backoffStrategy, TimelineRecorder.noop(clock));
+                clock, backoffStrategy, TimelineRecorder.noop(clock),
+                new TaskConfigExpressionResolver(workflowRunRepository));
     }
 
     public WorkflowExecutionCoordinatorService(
@@ -65,12 +70,26 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             ClockPort clock,
             BackoffStrategy backoffStrategy,
             TimelineRecorder timelineRecorder) {
+        this(workflowRepository, workflowRunRepository, taskHandlerProvider,
+                clock, backoffStrategy, timelineRecorder,
+                new TaskConfigExpressionResolver(workflowRunRepository));
+    }
+
+    public WorkflowExecutionCoordinatorService(
+            WorkflowRepository workflowRepository,
+            WorkflowRunRepository workflowRunRepository,
+            TaskHandlerProvider taskHandlerProvider,
+            ClockPort clock,
+            BackoffStrategy backoffStrategy,
+            TimelineRecorder timelineRecorder,
+            TaskConfigExpressionResolver expressionResolver) {
         this.workflowRepository = Objects.requireNonNull(workflowRepository, "workflowRepository must not be null");
         this.workflowRunRepository = Objects.requireNonNull(workflowRunRepository, "workflowRunRepository must not be null");
         this.taskHandlerProvider = Objects.requireNonNull(taskHandlerProvider, "taskHandlerProvider must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.backoffStrategy = Objects.requireNonNull(backoffStrategy, "backoffStrategy must not be null");
         this.timelineRecorder = Objects.requireNonNull(timelineRecorder, "timelineRecorder must not be null");
+        this.expressionResolver = Objects.requireNonNull(expressionResolver, "expressionResolver must not be null");
     }
 
     @Override
@@ -203,6 +222,14 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
     }
 
     private void executeTask(TaskRun taskRun, TaskDefinition taskDef, Instant defaultStartedAt) {
+        TaskConfig resolvedConfig;
+        try {
+            resolvedConfig = expressionResolver.resolve(taskDef.config(), taskRun.workflowRunId());
+        } catch (TaskConfigExpressionException e) {
+            failTaskForExpressionError(taskRun, e.getMessage());
+            return;
+        }
+
         TaskHandler handler = taskHandlerProvider.getHandler(taskRun.taskType());
 
         // Mark as RUNNING
@@ -215,7 +242,7 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
 
         TaskResult result;
         try {
-            result = handler.execute(taskRun, taskDef, taskDef.config().asMap());
+            result = handler.execute(taskRun, taskDef, resolvedConfig.asMap());
         } catch (Exception e) {
             result = TaskResult.failure(e.getClass().getSimpleName(), e.getMessage());
         }
@@ -245,6 +272,18 @@ public final class WorkflowExecutionCoordinatorService implements ExecuteWorkflo
             workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), finishedTaskRun);
             recordTerminalTaskEvent(finishedTaskRun);
         }
+    }
+
+    private void failTaskForExpressionError(TaskRun taskRun, String message) {
+        Instant now = clock.now();
+        TaskRun failed = taskRun.withStatus(TaskRunStatus.FAILED)
+                .withFinishedAt(now)
+                .withErrorMessage("Task config expression failed: " + message)
+                .withOutput(null);
+        workflowRunRepository.updateTaskRunStatus(taskRun.workflowRunId(), failed);
+        timelineRecorder.task(taskRun.workflowRunId(), taskRun.id(), taskRun.taskId(),
+                TimelineEventType.TASK_FAILED,
+                "Task " + taskRun.taskId().value() + " failed while resolving config");
     }
 
     private void recordTerminalTaskEvent(TaskRun taskRun) {

@@ -206,6 +206,26 @@ class TaskConfigExpressionResolverTest {
     }
 
     @Test
+    void failsWhenPathSegmentHasExtraClosingBracket() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"items\":[\"a\"]}"));
+
+        assertThatThrownBy(() -> resolver.resolve(
+                TaskConfig.of(Map.of("id", "${tasks.extract.output.items[0]]}")), RUN_ID))
+                .isInstanceOf(TaskConfigExpressionException.class)
+                .hasMessageContaining("Invalid path segment: items[0]]");
+    }
+
+    @Test
+    void failsWhenPathSegmentHasTrailingCharactersBeforeExtraClosingBracket() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"items\":[\"a\"]}"));
+
+        assertThatThrownBy(() -> resolver.resolve(
+                TaskConfig.of(Map.of("id", "${tasks.extract.output.items[0]abc]}")), RUN_ID))
+                .isInstanceOf(TaskConfigExpressionException.class)
+                .hasMessageContaining("Invalid path segment: items[0]abc]");
+    }
+
+    @Test
     void failsWhenExpressionEndsWithTrailingDot() {
         repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"id\":\"abc\"}"));
 

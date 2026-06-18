@@ -183,6 +183,7 @@ public final class TaskConfigExpressionResolver {
             value = map.get(field);
         }
         int cursor = bracketIndex;
+        int lastProcessedClose = -1;
         while (cursor != -1) {
             int close = segment.indexOf(']', cursor);
             if (close == -1 || close == cursor + 1) {
@@ -201,13 +202,11 @@ public final class TaskConfigExpressionResolver {
                 throw new TaskConfigExpressionException("Array index out of bounds: " + arrayIndex);
             }
             value = list.get(arrayIndex);
+            lastProcessedClose = close;
             cursor = segment.indexOf('[', close + 1);
         }
-        if (bracketIndex != -1) {
-            int lastClose = segment.lastIndexOf(']');
-            if (lastClose != -1 && lastClose + 1 < segment.length()) {
-                throw new TaskConfigExpressionException("Invalid path segment: " + segment);
-            }
+        if (bracketIndex != -1 && lastProcessedClose + 1 < segment.length()) {
+            throw new TaskConfigExpressionException("Invalid path segment: " + segment);
         }
         return value;
     }

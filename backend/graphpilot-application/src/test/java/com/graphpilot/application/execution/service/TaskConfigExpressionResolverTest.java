@@ -185,6 +185,16 @@ class TaskConfigExpressionResolverTest {
                 .hasMessageContaining("Invalid task output expression");
     }
 
+    @Test
+    void failsWhenArrayIndexIsInvalid() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"items\":[\"a\"]}"));
+
+        assertThatThrownBy(() -> resolver.resolve(
+                TaskConfig.of(Map.of("id", "${tasks.extract.output.items[abc]}")), RUN_ID))
+                .isInstanceOf(TaskConfigExpressionException.class)
+                .hasMessageContaining("Invalid array index in path segment: items[abc]");
+    }
+
     private static TaskRun taskRun(String taskId, TaskRunStatus status, String output) {
         return TaskRun.restore(
                 TaskRunId.of("task-run-" + taskId),

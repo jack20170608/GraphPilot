@@ -147,7 +147,12 @@ public final class TaskConfigExpressionResolver {
             if (close == -1 || close == cursor + 1) {
                 throw new TaskConfigExpressionException("Invalid array index in path segment: " + segment);
             }
-            int arrayIndex = Integer.parseInt(segment.substring(cursor + 1, close));
+            int arrayIndex;
+            try {
+                arrayIndex = Integer.parseInt(segment.substring(cursor + 1, close));
+            } catch (NumberFormatException e) {
+                throw new TaskConfigExpressionException("Invalid array index in path segment: " + segment);
+            }
             if (!(value instanceof List<?> list)) {
                 throw new TaskConfigExpressionException("Path segment is not an array: " + segment);
             }

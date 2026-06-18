@@ -195,6 +195,47 @@ class TaskConfigExpressionResolverTest {
                 .hasMessageContaining("Invalid array index in path segment: items[abc]");
     }
 
+    @Test
+    void failsWhenPathSegmentHasTrailingCharactersAfterBracket() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"items\":[\"a\"]}"));
+
+        assertThatThrownBy(() -> resolver.resolve(
+                TaskConfig.of(Map.of("id", "${tasks.extract.output.items[0]abc}")), RUN_ID))
+                .isInstanceOf(TaskConfigExpressionException.class)
+                .hasMessageContaining("Invalid path segment: items[0]abc");
+    }
+
+    @Test
+    void failsWhenExpressionEndsWithTrailingDot() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"id\":\"abc\"}"));
+
+        assertThatThrownBy(() -> resolver.resolve(
+                TaskConfig.of(Map.of("id", "${tasks.extract.output.}")), RUN_ID))
+                .isInstanceOf(TaskConfigExpressionException.class)
+                .hasMessageContaining("Invalid task output expression: tasks.extract.output.");
+    }
+
+    @Test
+    void failsWhenDuplicateTaskIdsInWorkflowRun() {
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"id\":\"a\"}"));
+        repository.taskRuns.add(taskRun("extract", TaskRunStatus.SUCCEEDED, "{\"id\":\"b\"}"));
+
+        assertThatThrownBy(() -> resolver.resolve(
+                TaskConfig.of(Map.of("id", "${tasks.extract.output.id}")), RUN_ID))
+                .isInstanceOf(TaskConfigExpressionException.class)
+                .hasMessageContaining("Duplicate task ID in workflow run: extract");
+    }
+
+    @Test
+    void returnsOriginalConfigWithoutQueryingRepositoryWhenNoExpressions() {
+        TaskConfig config = TaskConfig.of(Map.of("n", 1, "flag", true));
+
+        TaskConfig resolved = resolver.resolve(config, RUN_ID);
+
+        assertThat(resolved).isSameAs(config);
+        assertThat(repository.queryCount).isZero();
+    }
+
     private static TaskRun taskRun(String taskId, TaskRunStatus status, String output) {
         return TaskRun.restore(
                 TaskRunId.of("task-run-" + taskId),
@@ -215,6 +256,7 @@ class TaskConfigExpressionResolverTest {
 
     private static final class FakeWorkflowRunRepository implements WorkflowRunRepository {
         final List<TaskRun> taskRuns = new ArrayList<>();
+        int queryCount = 0;
 
         @Override
         public WorkflowRun save(WorkflowRun workflowRun, List<TaskRun> taskRuns) { throw new UnsupportedOperationException(); }
@@ -223,6 +265,6 @@ class TaskConfigExpressionResolverTest {
         @Override
         public List<WorkflowRun> findRunsByWorkflowId(WorkflowId workflowId, int limit) { return List.of(); }
         @Override
-        public List<TaskRun> findTaskRunsByRunId(WorkflowRunId workflowRunId) { return List.copyOf(taskRuns); }
+        public List<TaskRun> findTaskRunsByRunId(WorkflowRunId workflowRunId) { queryCount++; return List.copyOf(taskRuns); }
     }
 }

@@ -9,13 +9,13 @@ import com.graphpilot.domain.execution.TaskRun;
 import com.graphpilot.domain.execution.TaskRunStatus;
 import com.graphpilot.domain.execution.WorkflowRunId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public final class TaskConfigExpressionResolver {
 
@@ -34,50 +34,88 @@ public final class TaskConfigExpressionResolver {
     public TaskConfig resolve(TaskConfig config, WorkflowRunId workflowRunId) {
         Objects.requireNonNull(config, "config must not be null");
         Objects.requireNonNull(workflowRunId, "workflowRunId must not be null");
-        Map<String, TaskRun> taskRunsByTaskId = workflowRunRepository.findTaskRunsByRunId(workflowRunId).stream()
-                .collect(Collectors.toMap(taskRun -> taskRun.taskId().value(), taskRun -> taskRun, (left, right) -> left));
+        if (!containsExpression(config.asMap())) {
+            return config;
+        }
+        Map<String, TaskRun> taskRunsByTaskId = toMap(workflowRunRepository.findTaskRunsByRunId(workflowRunId));
+        Map<String, Object> jsonCache = new HashMap<>();
         @SuppressWarnings("unchecked")
-        Map<String, Object> resolved = (Map<String, Object>) resolveValue(config.asMap(), taskRunsByTaskId);
+        Map<String, Object> resolved = (Map<String, Object>) resolveValue(config.asMap(), taskRunsByTaskId, jsonCache);
         return TaskConfig.of(resolved);
     }
 
-    private Object resolveValue(Object value, Map<String, TaskRun> taskRunsByTaskId) {
+    private static Map<String, TaskRun> toMap(List<TaskRun> taskRuns) {
+        Map<String, TaskRun> map = new LinkedHashMap<>();
+        for (TaskRun taskRun : taskRuns) {
+            String key = taskRun.taskId().value();
+            if (map.containsKey(key)) {
+                throw new TaskConfigExpressionException("Duplicate task ID in workflow run: " + key);
+            }
+            map.put(key, taskRun);
+        }
+        return map;
+    }
+
+    private static boolean containsExpression(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            for (Object entryValue : map.values()) {
+                if (containsExpression(entryValue)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (value instanceof List<?> list) {
+            for (Object element : list) {
+                if (containsExpression(element)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (value instanceof String text) {
+            return text.contains("${");
+        }
+        return false;
+    }
+
+    private Object resolveValue(Object value, Map<String, TaskRun> taskRunsByTaskId, Map<String, Object> jsonCache) {
         if (value instanceof Map<?, ?> map) {
             Map<String, Object> resolved = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : map.entrySet()) {
-                resolved.put(entry.getKey().toString(), resolveValue(entry.getValue(), taskRunsByTaskId));
+                resolved.put(entry.getKey().toString(), resolveValue(entry.getValue(), taskRunsByTaskId, jsonCache));
             }
             return resolved;
         }
         if (value instanceof List<?> list) {
             List<Object> resolved = new ArrayList<>();
             for (Object element : list) {
-                resolved.add(resolveValue(element, taskRunsByTaskId));
+                resolved.add(resolveValue(element, taskRunsByTaskId, jsonCache));
             }
             return List.copyOf(resolved);
         }
         if (value instanceof String text) {
-            return resolveString(text, taskRunsByTaskId);
+            return resolveString(text, taskRunsByTaskId, jsonCache);
         }
         return value;
     }
 
-    private Object resolveString(String text, Map<String, TaskRun> taskRunsByTaskId) {
+    private Object resolveString(String text, Map<String, TaskRun> taskRunsByTaskId, Map<String, Object> jsonCache) {
         Matcher wholeMatcher = EXPRESSION.matcher(text);
         if (wholeMatcher.matches()) {
-            return resolveExpression(wholeMatcher.group(1), taskRunsByTaskId);
+            return resolveExpression(wholeMatcher.group(1), taskRunsByTaskId, jsonCache);
         }
         Matcher matcher = EXPRESSION.matcher(text);
         StringBuffer output = new StringBuffer();
         while (matcher.find()) {
-            Object value = resolveExpression(matcher.group(1), taskRunsByTaskId);
+            Object value = resolveExpression(matcher.group(1), taskRunsByTaskId, jsonCache);
             matcher.appendReplacement(output, Matcher.quoteReplacement(toEmbeddedString(value)));
         }
         matcher.appendTail(output);
         return output.toString();
     }
 
-    private Object resolveExpression(String expression, Map<String, TaskRun> taskRunsByTaskId) {
+    private Object resolveExpression(String expression, Map<String, TaskRun> taskRunsByTaskId, Map<String, Object> jsonCache) {
         if (!expression.startsWith(PREFIX)) {
             throw new TaskConfigExpressionException("Invalid task output expression: " + expression);
         }
@@ -87,6 +125,9 @@ public final class TaskConfigExpressionResolver {
         }
         String taskId = expression.substring(PREFIX.length(), outputIndex);
         String path = expression.substring(outputIndex + OUTPUT_SEGMENT.length());
+        if (path.endsWith(".")) {
+            throw new TaskConfigExpressionException("Invalid task output expression: " + expression);
+        }
         TaskRun taskRun = taskRunsByTaskId.get(taskId);
         if (taskRun == null) {
             throw new TaskConfigExpressionException("Referenced task not found: " + taskId);
@@ -101,12 +142,12 @@ public final class TaskConfigExpressionResolver {
         if (path.isEmpty()) {
             return output;
         }
-        Object json = parseOutputJson(taskId, output);
-        return resolvePath(json, path.startsWith(".") ? path.substring(1) : invalidPath(path, expression));
-    }
-
-    private static String invalidPath(String path, String expression) {
-        throw new TaskConfigExpressionException("Invalid task output expression: " + expression);
+        if (!path.startsWith(".")) {
+            throw new TaskConfigExpressionException("Invalid task output expression: " + expression);
+        }
+        String normalizedPath = path.substring(1);
+        Object json = jsonCache.computeIfAbsent(taskId, k -> parseOutputJson(taskId, output));
+        return resolvePath(json, normalizedPath);
     }
 
     private Object parseOutputJson(String taskId, String output) {
@@ -161,6 +202,12 @@ public final class TaskConfigExpressionResolver {
             }
             value = list.get(arrayIndex);
             cursor = segment.indexOf('[', close + 1);
+        }
+        if (bracketIndex != -1) {
+            int lastClose = segment.lastIndexOf(']');
+            if (lastClose != -1 && lastClose + 1 < segment.length()) {
+                throw new TaskConfigExpressionException("Invalid path segment: " + segment);
+            }
         }
         return value;
     }

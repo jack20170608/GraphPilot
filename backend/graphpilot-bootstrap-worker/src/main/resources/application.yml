@@ -1,0 +1,11 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: graphpilot-worker
+
+logging:
+  level:
+    com.graphpilot: INFO
+    org.springframework: WARN

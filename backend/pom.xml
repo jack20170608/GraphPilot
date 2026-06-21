@@ -19,8 +19,10 @@
         <module>graphpilot-adapter-persistence-mybatis</module>
         <module>graphpilot-adapter-persistence-memory</module>
         <module>graphpilot-adapter-worker</module>
+        <module>graphpilot-adapter-worker-http</module>
         <module>graphpilot-adapter-worker-spring</module>
         <module>graphpilot-adapter-worker-micronaut</module>
+        <module>graphpilot-bootstrap-worker</module>
         <module>graphpilot-bootstrap-spring</module>
         <module>graphpilot-bootstrap-micronaut</module>
     </modules>

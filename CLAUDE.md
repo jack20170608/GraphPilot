@@ -9,6 +9,7 @@
 3. 当前开发终端是 Git Bash。即使运行在 Windows 系统上，也应优先使用 Bash 风格命令；除非确有必要或用户明确要求，避免使用 Windows PowerShell 专用命令。
 4. 本项目优先使用 auto mode 风格自动化执行：在已有明确目标、验证路径和安全边界时，Claude Code 应尽量直接执行读写、测试、commit、普通 `git push` 等操作，减少反复向用户确认；但仍不得绕过明确的 deny 规则、不得执行 force push、破坏性删除或其它高风险操作。
 5. **新研发项目，无需向后兼容**：架构演进时可以大胆废弃旧代码、重构模块结构、删除不再使用的文件。不保留过时的向后兼容层。
+6. **模块名与目录名一致**：Maven 模块名称（artifactId）必须与所在目录名完全一致。例如目录 `scheduler/` 的模块 artifactId 必须是 `graphpilot-scheduler` 或 `scheduler`。禁止使用与目录名不一致的模块名。
 
 ## 项目概览
 

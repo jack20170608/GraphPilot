@@ -4,20 +4,38 @@
          xsi:schemaLocation="http://maven.apache.org/xsd/maven-4.0.0.xsd https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <groupId>com.graphpilot</groupId>
     <artifactId>backend</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>GraphPilot Backend</name>
-    <description>GraphPilot Java backend - build configuration</description>
+    <description>GraphPilot Java backend - main aggregator</description>
 
-    <!-- 继承 build 模块统一版本管理 -->
+    <!-- 继承 build 模块获取 plugin versions -->
     <parent>
         <groupId>com.graphpilot</groupId>
         <artifactId>build</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
+    <!-- 继承 BOM 获取内部依赖版本 -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.graphpilot</groupId>
+                <artifactId>bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
+        <!-- BOM（依赖版本管理） -->
+        <module>bom</module>
+
         <!-- Java 核心模块（无框架依赖） -->
         <module>java-core</module>
 

@@ -19,7 +19,6 @@
         <dependency>
             <groupId>com.graphpilot</groupId>
             <artifactId>domain</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

@@ -19,6 +19,23 @@
     <name>GraphPilot Spring Boot</name>
     <description>GraphPilot Spring Boot applications.</description>
 
+    <properties>
+        <!-- 在 spring-boot parent 之前定义，供 BOM 使用 -->
+        <project.version>0.1.0-SNAPSHOT</project.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.graphpilot</groupId>
+                <artifactId>bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
         <module>scheduler</module>
         <module>worker</module>

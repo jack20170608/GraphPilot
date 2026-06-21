@@ -16,6 +16,18 @@
     <name>GraphPilot Java Core</name>
     <description>Framework-free Java modules: domain, application layers.</description>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.graphpilot</groupId>
+                <artifactId>bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
         <!-- 共享层 -->
         <module>domain</module>

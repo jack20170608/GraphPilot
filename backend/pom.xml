@@ -15,6 +15,7 @@
         <groupId>com.graphpilot</groupId>
         <artifactId>build</artifactId>
         <version>${revision}</version>
+        <relativePath>./build</relativePath>
     </parent>
 
     <!-- 继承 BOM 获取内部依赖版本 -->

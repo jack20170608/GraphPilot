@@ -8,6 +8,7 @@
         <groupId>com.graphpilot</groupId>
         <artifactId>build</artifactId>
         <version>${revision}</version>
+        <relativePath>../build</relativePath>
     </parent>
 
     <artifactId>adapters</artifactId>

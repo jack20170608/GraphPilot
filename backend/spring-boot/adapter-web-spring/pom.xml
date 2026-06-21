@@ -6,7 +6,7 @@
 
     <parent>
         <groupId>com.graphpilot</groupId>
-        <artifactId>adapters</artifactId>
+        <artifactId>spring-boot</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 

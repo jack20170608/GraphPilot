@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/workflows")
-class WorkflowController {
+public class WorkflowController {
 
     private static final int MAX_LIST_LIMIT = 100;
 
@@ -29,7 +29,7 @@ class WorkflowController {
     private final QueryWorkflowUseCase queryWorkflowUseCase;
     private final ChangeWorkflowLifecycleUseCase changeWorkflowLifecycleUseCase;
 
-    WorkflowController(
+    public WorkflowController(
             CreateWorkflowUseCase createWorkflowUseCase,
             QueryWorkflowUseCase queryWorkflowUseCase,
             ChangeWorkflowLifecycleUseCase changeWorkflowLifecycleUseCase) {

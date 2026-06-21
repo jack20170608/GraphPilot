@@ -17,9 +17,7 @@
 
     <modules>
         <module>adapter-persistence-memory</module>
-        <module>adapter-persistence-mybatis</module>
         <module>adapter-worker</module>
         <module>adapter-worker-http</module>
-        <module>adapter-web-spring</module>
     </modules>
 </project>

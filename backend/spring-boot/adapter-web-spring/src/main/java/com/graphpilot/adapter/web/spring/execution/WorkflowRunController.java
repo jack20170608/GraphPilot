@@ -19,7 +19,7 @@ import org.springframework.web.util.UriUtils;
 
 @RestController
 @RequestMapping("/api")
-class WorkflowRunController {
+public class WorkflowRunController {
 
     private static final int MAX_LIST_LIMIT = 100;
     private static final int MAX_TIMELINE_LIMIT = 500;
@@ -27,7 +27,7 @@ class WorkflowRunController {
     private final TriggerWorkflowRunUseCase triggerWorkflowRunUseCase;
     private final QueryWorkflowRunUseCase queryWorkflowRunUseCase;
 
-    WorkflowRunController(
+    public WorkflowRunController(
             TriggerWorkflowRunUseCase triggerWorkflowRunUseCase,
             QueryWorkflowRunUseCase queryWorkflowRunUseCase) {
         this.triggerWorkflowRunUseCase = Objects.requireNonNull(

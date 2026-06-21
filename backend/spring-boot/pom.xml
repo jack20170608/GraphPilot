@@ -4,25 +4,19 @@
          xsi:schemaLocation="http://maven.apache.org/xsd/maven-4.0.0.xsd https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- 继承 build 模块，获取 plugin versions 和 Spring Boot 依赖 -->
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.5</version>
-        <relativePath/>
+        <groupId>com.graphpilot</groupId>
+        <artifactId>build</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../build</relativePath>
     </parent>
 
-    <groupId>com.graphpilot</groupId>
     <artifactId>spring-boot</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>GraphPilot Spring Boot</name>
     <description>GraphPilot Spring Boot applications.</description>
-
-    <properties>
-        <!-- 在 spring-boot parent 之前定义，供 BOM 使用 -->
-        <project.version>0.1.0-SNAPSHOT</project.version>
-    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -40,5 +34,7 @@
         <module>scheduler</module>
         <module>worker</module>
         <module>admin</module>
+        <module>adapter-web-spring</module>
+        <module>adapter-persistence-mybatis</module>
     </modules>
 </project>

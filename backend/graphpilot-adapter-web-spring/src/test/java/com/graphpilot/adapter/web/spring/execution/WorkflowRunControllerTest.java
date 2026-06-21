@@ -149,7 +149,7 @@ class WorkflowRunControllerTest {
                 WorkflowRunId.of("run-1"),
                 TaskId.of("extract"),
                 "Extract data",
-                "http",
+                "shell",
                 TaskRunStatus.FAILED,
                 0,
                 2,
@@ -178,7 +178,7 @@ class WorkflowRunControllerTest {
 
         mockMvc.perform(get("/api/workflow-runs/run-1/tasks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].taskType").value("http"))
+                .andExpect(jsonPath("$[0].taskType").value("shell"))
                 .andExpect(jsonPath("$[0].status").value("FAILED"))
                 .andExpect(jsonPath("$[0].retryCount").value(2))
                 .andExpect(jsonPath("$[0].maxRetries").value(3))

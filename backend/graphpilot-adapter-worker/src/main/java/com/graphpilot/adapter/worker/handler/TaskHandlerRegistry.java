@@ -18,7 +18,6 @@ public class TaskHandlerRegistry implements TaskHandlerProvider {
     public TaskHandlerRegistry() {
         // Register default handlers
         register(new MockTaskHandler());
-        register(new HttpTaskHandler());
         register(new ShellTaskHandler());
     }
 

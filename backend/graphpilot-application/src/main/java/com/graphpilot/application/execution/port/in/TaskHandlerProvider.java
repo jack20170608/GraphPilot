@@ -10,7 +10,7 @@ public interface TaskHandlerProvider {
     /**
      * Get a handler for the given task type.
      *
-     * @param taskType the task type (e.g., "http", "shell", "mock")
+     * @param taskType the task type (e.g., "shell", "mock")
      * @return the handler for that type
      * @throws IllegalArgumentException if no handler found for type
      */

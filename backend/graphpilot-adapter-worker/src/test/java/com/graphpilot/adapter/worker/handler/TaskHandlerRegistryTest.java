@@ -14,7 +14,6 @@ class TaskHandlerRegistryTest {
         TaskHandlerRegistry registry = new TaskHandlerRegistry();
 
         assertThat(registry.getHandler("mock")).isInstanceOf(MockTaskHandler.class);
-        assertThat(registry.getHandler("http")).isInstanceOf(HttpTaskHandler.class);
         assertThat(registry.getHandler("shell")).isInstanceOf(ShellTaskHandler.class);
     }
 
@@ -33,9 +32,9 @@ class TaskHandlerRegistryTest {
 
         List<TaskHandler> handlers = registry.getAllHandlers();
 
-        assertThat(handlers).hasSize(3);
+        assertThat(handlers).hasSize(2);
         assertThat(handlers).extracting(TaskHandler::supportedType)
-                .containsExactlyInAnyOrder("mock", "http", "shell");
+                .containsExactlyInAnyOrder("mock", "shell");
     }
 
     @Test
@@ -46,8 +45,8 @@ class TaskHandlerRegistryTest {
 
         registry.register(customHandler);
 
-        // Should still have the 3 original handlers (duplicate registration for shell is ignored, mock/http added)
-        assertThat(registry.getAllHandlers()).hasSize(3);
+        // Should still have the 2 original handlers (duplicate registration for shell is ignored, mock added)
+        assertThat(registry.getAllHandlers()).hasSize(2);
     }
 
     @Test

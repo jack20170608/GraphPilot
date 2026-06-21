@@ -36,4 +36,4 @@ bootstrap -> adapters -> application -> domain
 - Adapters 需要在 external DTOs/entities 与 core domain objects 之间进行显式映射。
 
 ## 参考资料
-- [](https://github.com/kamilmazurek/hexagonal-architecture-template)
+- [hexagonal-architecture-template](https://github.com/kamilmazurek/hexagonal-architecture-template)

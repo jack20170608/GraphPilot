@@ -10,7 +10,7 @@
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>graphpilot-scheduler</artifactId>
+    <artifactId>scheduler</artifactId>
     <packaging>jar</packaging>
     <name>GraphPilot Scheduler</name>
     <description>Task scheduling and DAG coordination. Triggers workflow runs, manages task dependencies, handles retries.</description>

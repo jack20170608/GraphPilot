@@ -10,7 +10,7 @@
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>graphpilot-admin</artifactId>
+    <artifactId>admin</artifactId>
     <packaging>jar</packaging>
     <name>GraphPilot Admin</name>
     <description>Admin API for workflow management, DAG editing, and run status queries.</description>

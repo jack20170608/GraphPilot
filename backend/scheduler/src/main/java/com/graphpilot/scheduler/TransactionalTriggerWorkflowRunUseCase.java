@@ -1,6 +1,6 @@
 package com.graphpilot.scheduler;
 
-import com.graphpilot.application.execution.port.in.TriggerWorkflowRunUseCase;
+import com.graphpilot.scheduler.application.execution.port.in.TriggerWorkflowRunUseCase;
 import com.graphpilot.domain.execution.WorkflowRunId;
 import com.graphpilot.domain.workflow.WorkflowId;
 import java.util.Objects;

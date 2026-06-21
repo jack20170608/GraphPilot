@@ -1,6 +1,6 @@
 package com.graphpilot.scheduler;
 
-import com.graphpilot.application.execution.port.in.ScanPendingWorkflowRunsUseCase;
+import com.graphpilot.scheduler.application.execution.port.in.ScanPendingWorkflowRunsUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

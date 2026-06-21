@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.graphpilot</groupId>
-    <artifactId>graphpilot-backend</artifactId>
+    <artifactId>backend</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -19,15 +19,13 @@
         <module>admin</module>
 
         <!-- 共享层 -->
-        <module>graphpilot-domain</module>
-        <module>graphpilot-application</module>
+        <module>domain</module>
+        <module>application-shared</module>
+        <module>scheduler-application</module>
+        <module>admin-application</module>
 
         <!-- 适配器层 -->
-        <module>graphpilot-adapter-persistence-mybatis</module>
-        <module>graphpilot-adapter-persistence-memory</module>
-        <module>graphpilot-adapter-worker</module>
-        <module>graphpilot-adapter-worker-http</module>
-        <module>graphpilot-adapter-web-spring</module>
+        <module>adapters</module>
     </modules>
 
     <properties>

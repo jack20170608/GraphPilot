@@ -2,7 +2,7 @@ package com.graphpilot.worker;
 
 import com.graphpilot.adapter.worker.handler.TaskHandlerRegistry;
 import com.graphpilot.adapter.worker.http.WorkerTaskController;
-import com.graphpilot.application.execution.port.in.TaskHandlerProvider;
+import com.graphpilot.scheduler.application.execution.port.in.TaskHandlerProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

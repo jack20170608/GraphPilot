@@ -6,7 +6,7 @@
 
     <parent>
         <groupId>com.graphpilot</groupId>
-        <artifactId>graphpilot-backend</artifactId>
+        <artifactId>backend</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
@@ -16,34 +16,36 @@
     <description>Admin API for workflow management, DAG editing, and run status queries.</description>
 
     <dependencies>
-        <!-- 依赖应用层（use cases + ports） -->
+        <!-- 共享层 -->
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-application</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-domain</artifactId>
+            <artifactId>domain</artifactId>
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Admin 需要持久化来存储 workflow definition -->
+        <!-- Application 层 -->
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-persistence-memory</artifactId>
+            <artifactId>admin-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Persistence adapter -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>adapter-persistence-memory</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-persistence-mybatis</artifactId>
+            <artifactId>adapter-persistence-mybatis</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Web adapter for REST controllers -->
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-web-spring</artifactId>
+            <artifactId>adapter-web-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
 

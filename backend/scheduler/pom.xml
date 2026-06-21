@@ -6,7 +6,7 @@
 
     <parent>
         <groupId>com.graphpilot</groupId>
-        <artifactId>graphpilot-backend</artifactId>
+        <artifactId>backend</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
@@ -19,36 +19,43 @@
         <!-- 共享层 -->
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-application</artifactId>
+            <artifactId>domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Application 层（内置于 scheduler） -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>scheduler-application</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-domain</artifactId>
+            <artifactId>application-shared</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Persistence adapter -->
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-persistence-memory</artifactId>
+            <artifactId>adapter-persistence-memory</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-persistence-mybatis</artifactId>
+            <artifactId>adapter-persistence-mybatis</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Worker adapters -->
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-worker</artifactId>
+            <artifactId>adapter-worker</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-worker-http</artifactId>
+            <artifactId>adapter-worker-http</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -4,16 +4,22 @@
          xsi:schemaLocation="http://maven.apache.org/xsd/maven-4.0.0.xsd https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>com.graphpilot</groupId>
+        <artifactId>build</artifactId>
+        <version>${revision}</version>
+        <relativePath>../build</relativePath>
+    </parent>
+
     <groupId>com.graphpilot</groupId>
     <artifactId>bom</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>GraphPilot BOM</name>
     <description>Bill of Materials -统一管理内部模块依赖版本</description>
 
     <properties>
-        <project.version>0.1.0-SNAPSHOT</project.version>
         <junit-jupiter.version>5.10.5</junit-jupiter.version>
         <assertj.version>3.26.3</assertj.version>
         <mockito.version>5.12.0</mockito.version>

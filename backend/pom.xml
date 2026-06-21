@@ -14,7 +14,7 @@
     <parent>
         <groupId>com.graphpilot</groupId>
         <artifactId>build</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <!-- 继承 BOM 获取内部依赖版本 -->
@@ -23,7 +23,7 @@
             <dependency>
                 <groupId>com.graphpilot</groupId>
                 <artifactId>bom</artifactId>
-                <version>${project.version}</version>
+                <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

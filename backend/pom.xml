@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/xsd/maven-4.0.0.xsd https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.graphpilot</groupId>
@@ -10,75 +10,23 @@
     <packaging>pom</packaging>
 
     <name>GraphPilot Backend</name>
-    <description>GraphPilot Java backend - 3 core modules: scheduler, worker, admin</description>
+    <description>GraphPilot Java backend - build configuration</description>
+
+    <!-- 继承 build 模块统一版本管理 -->
+    <parent>
+        <groupId>com.graphpilot</groupId>
+        <artifactId>build</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
 
     <modules>
-        <!-- 3 核心业务模块 -->
-        <module>scheduler</module>
-        <module>worker</module>
-        <module>admin</module>
+        <!-- Java 核心模块（无框架依赖） -->
+        <module>java-core</module>
 
-        <!-- 共享层 -->
-        <module>domain</module>
-        <module>application-shared</module>
-        <module>scheduler-application</module>
-        <module>admin-application</module>
+        <!-- Spring Boot 应用 -->
+        <module>spring-boot</module>
 
         <!-- 适配器层 -->
         <module>adapters</module>
     </modules>
-
-    <properties>
-        <java.version>21</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>${java.version}</maven.compiler.release>
-        <spring-boot.version>3.3.5</spring-boot.version>
-        <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
-        <junit-jupiter.version>5.10.5</junit-jupiter.version>
-        <assertj.version>3.26.3</assertj.version>
-        <mockito.version>5.12.0</mockito.version>
-        <jacoco.version>0.8.14</jacoco.version>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.14.0</version>
-                    <configuration>
-                        <release>${java.version}</release>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>${spring-boot.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.4</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.jacoco</groupId>
-                    <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>${jacoco.version}</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
 </project>

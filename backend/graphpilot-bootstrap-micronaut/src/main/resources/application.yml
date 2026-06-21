@@ -1,9 +1,0 @@
-micronaut:
-  application:
-    name: graphpilot-micronaut
-  server:
-    port: 8090
-logger:
-  levels:
-    ROOT: INFO
-    com.graphpilot: INFO

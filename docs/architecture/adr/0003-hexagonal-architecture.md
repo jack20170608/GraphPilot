@@ -34,3 +34,6 @@ bootstrap -> adapters -> application -> domain
 - Persistence、web、scheduler、lock、event 和 worker 技术可以通过新增 adapters 替换。
 - Maven module boundaries 有助于强制约束架构依赖方向。
 - Adapters 需要在 external DTOs/entities 与 core domain objects 之间进行显式映射。
+
+## 参考资料
+- [](https://github.com/kamilmazurek/hexagonal-architecture-template)

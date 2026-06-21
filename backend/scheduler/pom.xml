@@ -16,7 +16,7 @@
     <description>Task scheduling and DAG coordination. Triggers workflow runs, manages task dependencies, handles retries.</description>
 
     <dependencies>
-        <!-- 依赖应用层（use cases + ports） -->
+        <!-- 共享层 -->
         <dependency>
             <groupId>com.graphpilot</groupId>
             <artifactId>graphpilot-application</artifactId>
@@ -28,7 +28,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- 调度需要持久化来记录状态 -->
+        <!-- Persistence adapter -->
         <dependency>
             <groupId>com.graphpilot</groupId>
             <artifactId>graphpilot-adapter-persistence-memory</artifactId>
@@ -40,7 +40,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- 调度需要 worker adapter 来分发任务 -->
+        <!-- Worker adapters -->
         <dependency>
             <groupId>com.graphpilot</groupId>
             <artifactId>graphpilot-adapter-worker</artifactId>
@@ -49,12 +49,6 @@
         <dependency>
             <groupId>com.graphpilot</groupId>
             <artifactId>graphpilot-adapter-worker-http</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <!-- Worker Spring adapter for event listener -->
-        <dependency>
-            <groupId>com.graphpilot</groupId>
-            <artifactId>graphpilot-adapter-worker-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
 

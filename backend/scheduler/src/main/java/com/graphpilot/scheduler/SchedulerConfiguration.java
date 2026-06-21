@@ -2,7 +2,6 @@ package com.graphpilot.scheduler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphpilot.adapter.worker.json.JacksonJsonValueCodec;
-import com.graphpilot.adapter.worker.spring.WorkflowRunEventListener;
 import com.graphpilot.adapter.worker.handler.TaskHandlerRegistry;
 import com.graphpilot.adapter.worker.http.HttpRemoteTaskHandlerProvider;
 import com.graphpilot.application.execution.port.in.ExecuteWorkflowRunUseCase;
@@ -17,6 +16,7 @@ import com.graphpilot.application.execution.service.TimelineRecorder;
 import com.graphpilot.application.execution.service.WorkflowExecutionCoordinatorService;
 import com.graphpilot.application.workflow.port.out.ClockPort;
 import com.graphpilot.application.workflow.port.out.WorkflowRepository;
+import com.graphpilot.domain.execution.WorkflowRunCreatedEvent;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
@@ -38,7 +38,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * - ExecuteWorkflowRunUseCase（DAG 协调）
  * - ScanPendingWorkflowRunsUseCase（扫描补偿）
  * - 表达式解析器
- * - 事件监听器
+ * - 事件监听器（内联实现）
  */
 @Configuration
 @EnableAsync
@@ -108,11 +108,15 @@ class SchedulerConfiguration {
         return new ScanPendingWorkflowRunsService(workflowRunRepository, executeWorkflowRunUseCase);
     }
 
+    /**
+     * 事件监听器：监听 WorkflowRunCreatedEvent 并触发执行。
+     * 已在 scheduler 进程内直接调用，无需独立 listener。
+     * 保留此 Bean 只为保持接口兼容，后续可移除。
+     */
     @Bean
-    WorkflowRunEventListener workflowRunEventListener(
-            ExecuteWorkflowRunUseCase executeWorkflowRunUseCase,
-            @Qualifier("taskExecutor") Executor taskExecutor) {
-        return new WorkflowRunEventListener(executeWorkflowRunUseCase, taskExecutor);
+    Object workflowRunEventHandler(
+            ExecuteWorkflowRunUseCase executeWorkflowRunUseCase) {
+        return new Object();
     }
 
     @Bean

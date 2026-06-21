@@ -3,7 +3,7 @@
 本文档描述 GraphPilot 后端 Maven 多模块之间的依赖关系。后端采用 **3 核心业务模块** 架构：
 
 ```text
-scheduler (调度) → worker (执行) → admin (管理 API)
+admin (管理) → scheduler (调度) → worker (执行)
 ```
 
 > 图中箭头方向 `A --> B` 表示 **A 依赖 B**。
@@ -22,33 +22,36 @@ graph TD
     APP["graphpilot-application<br/><i>use cases + ports</i>"]
 
     %% 适配器层
-    PERSISTENCE_MEM["adapter-persistence-memory"]
-    PERSISTENCE_MYBATIS["adapter-persistence-mybatis"]
-    ADAPTER_WORKER["adapter-worker"]
-    ADAPTER_WORKER_HTTP["adapter-worker-http"]
-    ADAPTER_WEB["adapter-web-spring"]
+    PERSISTENCE_MEM["graphpilot-adapter-persistence-memory"]
+    PERSISTENCE_MYBATIS["graphpilot-adapter-persistence-mybatis"]
+    ADAPTER_WORKER["graphpilot-adapter-worker"]
+    ADAPTER_WORKER_HTTP["graphpilot-adapter-worker-http"]
+    ADAPTER_WEB["graphpilot-adapter-web-spring"]
 
     %% 核心模块之间的通信
     SCHEDULER -- "HTTP POST /api/worker/execute" --> WORKER
     ADMIN -- "触发 workflow run" --> SCHEDULER
 
-    %% 核心 -> 共享层 -> 适配器
+    %% 每个 core 模块自包含依赖
     SCHEDULER --> APP
-    WORKER --> APP
-    ADMIN --> APP
-
-    APP --> DOMAIN
-    APP --> PERSISTENCE_MEM
-    APP --> PERSISTENCE_MYBATIS
-    APP --> ADAPTER_WORKER
-    APP --> ADAPTER_WORKER_HTTP
-    APP --> ADAPTER_WEB
-
-    %% Worker -> handler core
-    WORKER --> ADAPTER_WORKER
-
-    %% Scheduler -> HTTP adapter (在 remote 模式下)
+    SCHEDULER --> DOMAIN
+    SCHEDULER --> PERSISTENCE_MEM
+    SCHEDULER --> PERSISTENCE_MYBATIS
+    SCHEDULER --> ADAPTER_WORKER
     SCHEDULER --> ADAPTER_WORKER_HTTP
+
+    WORKER --> APP
+    WORKER --> ADAPTER_WORKER
+    WORKER --> ADAPTER_WORKER_HTTP
+
+    ADMIN --> APP
+    ADMIN --> DOMAIN
+    ADMIN --> PERSISTENCE_MEM
+    ADMIN --> PERSISTENCE_MYBATIS
+    ADMIN --> ADAPTER_WEB
+
+    %% 共享层依赖
+    APP --> DOMAIN
 
     %% 分层样式
     classDef core fill:#fbcfe8,stroke:#9d174d,color:#000
@@ -62,28 +65,30 @@ graph TD
     class PERSISTENCE_MEM,PERSISTENCE_MYBATIS,ADAPTER_WORKER,ADAPTER_WORKER_HTTP,ADAPTER_WEB adapter
 ```
 
-## 新架构：3 核心模块
+## 模块清单（11 个）
 
-| 模块 | 端口 | 职责 |
-|------|------|------|
-| **scheduler** | 8080 | DAG 调度、依赖解析、任务触发、重试、PENDING 扫描补偿 |
-| **worker** | 8081 | 任务执行（shell/mock handlers），接收 HTTP 请求 |
-| **admin** | 8082 | Workflow CRUD、WorkflowRun 创建与查询、前端 API |
+| 模块 | 说明 |
+|------|------|
+| **scheduler** | 调度核心（端口 8080）：DAG 调度、任务触发、重试 |
+| **worker** | 任务执行（端口 8081）：shell/mock handlers |
+| **admin** | 管理 API（端口 8082）：Workflow CRUD、前端接口 |
+| graphpilot-domain | 共享领域模型 |
+| graphpilot-application | 共享应用层（use cases + ports） |
+| graphpilot-adapter-persistence-memory | 内存持久化（测试用） |
+| graphpilot-adapter-persistence-mybatis | MyBatis 持久化（生产用） |
+| graphpilot-adapter-worker | Worker 核心（shell/mock handler） |
+| graphpilot-adapter-worker-http | Worker HTTP 传输 |
+| graphpilot-adapter-web-spring | Spring Web 适配器 |
 
 ## 依赖矩阵
 
-| 模块 | 依赖的内部模块 |
-|------|----------------|
-| `graphpilot-domain` | （无） |
-| `graphpilot-application` | `graphpilot-domain` |
-| `adapter-persistence-memory` | `graphpilot-application` |
-| `adapter-persistence-mybatis` | `graphpilot-application` |
-| `adapter-worker` | `graphpilot-application` |
-| `adapter-worker-http` | `graphpilot-application`、`adapter-worker` |
-| `adapter-web-spring` | `graphpilot-application` |
-| **scheduler** | `graphpilot-application`、`graphpilot-domain`、`adapter-persistence-*`、`adapter-worker`、`adapter-worker-http`、`adapter-worker-spring` |
-| **worker** | `adapter-worker`、`adapter-worker-http` |
-| **admin** | `graphpilot-application`、`graphpilot-domain`、`adapter-persistence-*`、`adapter-web-spring` |
+每个核心模块自包含其所需的 adapter：
+
+| 模块 | 直接依赖 |
+|------|----------|
+| **scheduler** | `application`, `domain`, `adapter-persistence-*`, `adapter-worker`, `adapter-worker-http` |
+| **worker** | `application`, `adapter-worker`, `adapter-worker-http` |
+| **admin** | `application`, `domain`, `adapter-persistence-*`, `adapter-web-spring` |
 
 ## 进程间通信
 
@@ -93,7 +98,7 @@ graph TD
 │   (8080)    │                                   │   (8081)    │
 └─────────────┘                                   └─────────────┘
        ↑
-       │ HTTP
+       │ 创建 WorkflowRun
        │
 ┌─────────────┐
 │   admin     │
@@ -101,7 +106,7 @@ graph TD
 └─────────────┘
 ```
 
-- **admin → scheduler**：HTTP POST 创建 WorkflowRun（触发调度）
+- **admin → scheduler**：创建 WorkflowRun（触发调度）
 - **scheduler → worker**：HTTP POST 分发任务执行（remote 模式）
 
 ## 配置
@@ -141,17 +146,7 @@ graphpilot:
     type: memory  # memory 或 mybatis
 ```
 
-## 遗留模块（待废弃）
-
-以下模块保留用于向后兼容，逐步迁移后删除：
-
-- `graphpilot-bootstrap-spring`：原 All-in-one Spring 启动入口
-- `graphpilot-bootstrap-micronaut`：原 Micronaut 启动入口
-- `graphpilot-adapter-worker-spring`：Spring 事件监听器
-- `graphpilot-adapter-worker-micronaut`：Micronaut 事件监听器
-
 ## 相关文档
 
 - [架构概览](./overview.md)
-- [ADR 0003 Hexagonal Architecture](./adr/0003-hexagonal-architecture.md)
 - [独立 Worker 进程设计](../superpowers/specs/2026-06-21-standalone-worker-design.md)

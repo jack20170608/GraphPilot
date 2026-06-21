@@ -10,10 +10,14 @@
     <packaging>pom</packaging>
 
     <name>GraphPilot Backend</name>
-    <description>GraphPilot Java backend reactor - 3 core modules: scheduler, worker, admin</description>
+    <description>GraphPilot Java backend - 3 core modules: scheduler, worker, admin</description>
 
-    <!-- 所有模块按层级分组 -->
     <modules>
+        <!-- 3 核心业务模块 -->
+        <module>scheduler</module>
+        <module>worker</module>
+        <module>admin</module>
+
         <!-- 共享层 -->
         <module>graphpilot-domain</module>
         <module>graphpilot-application</module>
@@ -24,12 +28,6 @@
         <module>graphpilot-adapter-worker</module>
         <module>graphpilot-adapter-worker-http</module>
         <module>graphpilot-adapter-web-spring</module>
-
-        <!-- 3 核心业务模块 -->
-        <module>scheduler</module>
-        <module>worker</module>
-        <module>admin</module>
-
     </modules>
 
     <properties>
@@ -38,8 +36,6 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <spring-boot.version>3.3.5</spring-boot.version>
         <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
-        <micronaut.version>4.7.6</micronaut.version>
-        <micronaut.core.version>4.7.14</micronaut.core.version>
         <junit-jupiter.version>5.10.5</junit-jupiter.version>
         <assertj.version>3.26.3</assertj.version>
         <mockito.version>5.12.0</mockito.version>
@@ -52,13 +48,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.micronaut.platform</groupId>
-                <artifactId>micronaut-platform</artifactId>
-                <version>${micronaut.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.graphpilot</groupId>
+        <artifactId>graphpilot-backend</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>graphpilot-scheduler</artifactId>
+    <packaging>jar</packaging>
+    <name>GraphPilot Scheduler</name>
+    <description>Task scheduling and DAG coordination. Triggers workflow runs, manages task dependencies, handles retries.</description>
+
+    <dependencies>
+        <!-- 依赖应用层（use cases + ports） -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 调度需要持久化来记录状态 -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-persistence-memory</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-persistence-mybatis</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 调度需要 worker adapter 来分发任务 -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-worker</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-worker-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Worker Spring adapter for event listener -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-worker-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Boot -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,14 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: graphpilot-worker
+
+graphpilot:
+  worker:
+    handlers: [shell, mock]
+
+logging:
+  level:
+    com.graphpilot: INFO

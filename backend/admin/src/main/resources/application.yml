@@ -1,0 +1,14 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: graphpilot-admin
+
+graphpilot:
+  persistence:
+    type: memory  # memory 或 mybatis
+
+logging:
+  level:
+    com.graphpilot: INFO

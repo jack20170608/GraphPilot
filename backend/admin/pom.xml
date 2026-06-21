@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.graphpilot</groupId>
+        <artifactId>graphpilot-backend</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>graphpilot-admin</artifactId>
+    <packaging>jar</packaging>
+    <name>GraphPilot Admin</name>
+    <description>Admin API for workflow management, DAG editing, and run status queries.</description>
+
+    <dependencies>
+        <!-- 依赖应用层（use cases + ports） -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Admin 需要持久化来存储 workflow definition -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-persistence-memory</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-persistence-mybatis</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Web adapter for REST controllers -->
+        <dependency>
+            <groupId>com.graphpilot</groupId>
+            <artifactId>graphpilot-adapter-web-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Boot Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

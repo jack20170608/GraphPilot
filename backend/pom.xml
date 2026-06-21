@@ -10,19 +10,29 @@
     <packaging>pom</packaging>
 
     <name>GraphPilot Backend</name>
-    <description>GraphPilot Java backend reactor.</description>
+    <description>GraphPilot Java backend reactor - 3 core modules: scheduler, worker, admin</description>
 
+    <!-- 所有模块按层级分组 -->
     <modules>
+        <!-- 共享层 -->
         <module>graphpilot-domain</module>
         <module>graphpilot-application</module>
-        <module>graphpilot-adapter-web-spring</module>
+
+        <!-- 适配器层 -->
         <module>graphpilot-adapter-persistence-mybatis</module>
         <module>graphpilot-adapter-persistence-memory</module>
         <module>graphpilot-adapter-worker</module>
         <module>graphpilot-adapter-worker-http</module>
+        <module>graphpilot-adapter-web-spring</module>
         <module>graphpilot-adapter-worker-spring</module>
         <module>graphpilot-adapter-worker-micronaut</module>
-        <module>graphpilot-bootstrap-worker</module>
+
+        <!-- 3 核心业务模块 -->
+        <module>scheduler</module>
+        <module>worker</module>
+        <module>admin</module>
+
+        <!-- 遗留 bootstrap（待废弃） -->
         <module>graphpilot-bootstrap-spring</module>
         <module>graphpilot-bootstrap-micronaut</module>
     </modules>

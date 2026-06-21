@@ -6,8 +6,9 @@
 
     <parent>
         <groupId>com.graphpilot</groupId>
-        <artifactId>backend</artifactId>
+        <artifactId>java-core</artifactId>
         <version>0.1.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
     </parent>
 
     <artifactId>admin-application</artifactId>

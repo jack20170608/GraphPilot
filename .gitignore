@@ -14,6 +14,7 @@ Thumbs.db
 backend/**/target/
 *.class
 .mvn/wrapper/maven-wrapper.jar
+**/.flattened-pom.xml
 
 # Node / Next.js
 apps/web/node_modules/

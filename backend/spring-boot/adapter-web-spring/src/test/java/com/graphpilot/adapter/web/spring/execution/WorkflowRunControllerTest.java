@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -47,9 +48,10 @@ class WorkflowRunControllerTest {
     void setUp() {
         triggerWorkflowRunUseCase = new RecordingTriggerWorkflowRunUseCase();
         queryWorkflowRunUseCase = new RecordingQueryWorkflowRunUseCase();
-        ObjectMapper objectMapper = new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        var objectMapper = Jackson2ObjectMapperBuilder.json()
+                .modulesToInstall(JavaTimeModule.class)
+                .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .build();
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new WorkflowRunController(
                         triggerWorkflowRunUseCase,

@@ -19,10 +19,11 @@
     <name>GraphPilot BOM</name>
     <description>Bill of Materials -统一管理内部模块依赖版本</description>
 
+    <!-- 覆盖从 build 继承的版本属性（flatten 时需要） -->
     <properties>
-        <junit-jupiter.version>5.10.5</junit-jupiter.version>
-        <assertj.version>3.26.3</assertj.version>
-        <mockito.version>5.12.0</mockito.version>
+        <jackson.version>2.17.2</jackson.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
+        <okhttp.version>4.12.0</okhttp.version>
     </properties>
 
     <dependencyManagement>
@@ -110,6 +111,35 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
                 <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>mockwebserver</artifactId>
+                <version>${okhttp.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

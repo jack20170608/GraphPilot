@@ -22,10 +22,13 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
 
         <!-- Spring Boot -->
-        <spring-boot.version>3.3.5</spring-boot.version>
+        <spring-boot.version>4.0.0</spring-boot.version>
 
         <!-- MyBatis -->
         <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
+
+        <!-- Jackson -->
+        <jackson.version>2.17.2</jackson.version>
 
         <!-- Test -->
         <junit-jupiter.version>5.10.5</junit-jupiter.version>

@@ -3,7 +3,6 @@ package com.graphpilot.admin;
 import com.graphpilot.adapter.persistence.memory.InMemoryWorkflowRepository;
 import com.graphpilot.adapter.persistence.memory.SystemClockAdapter;
 import com.graphpilot.adapter.persistence.memory.UuidWorkflowIdGenerator;
-import com.graphpilot.adapter.web.spring.execution.WorkflowRunController;
 import com.graphpilot.adapter.web.spring.workflow.WorkflowController;
 import com.graphpilot.admin.application.workflow.port.in.ChangeWorkflowLifecycleUseCase;
 import com.graphpilot.admin.application.workflow.port.in.CreateWorkflowUseCase;
@@ -16,6 +15,7 @@ import com.graphpilot.application.shared.port.IdGeneratorPort;
 import com.graphpilot.application.shared.port.WorkflowRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class AdminConfiguration {
@@ -28,11 +28,13 @@ public class AdminConfiguration {
     }
 
     @Bean
+    @Primary
     WorkflowRepository workflowRepository(InMemoryWorkflowRepository delegate) {
         return delegate;
     }
 
     @Bean
+    @Primary
     IdGeneratorPort idGeneratorPort(UuidWorkflowIdGenerator generator) {
         return generator;
     }
@@ -78,10 +80,5 @@ public class AdminConfiguration {
             QueryWorkflowUseCase queryWorkflowUseCase,
             ChangeWorkflowLifecycleUseCase changeWorkflowLifecycleUseCase) {
         return new WorkflowController(createWorkflowUseCase, queryWorkflowUseCase, changeWorkflowLifecycleUseCase);
-    }
-
-    @Bean
-    WorkflowRunController workflowRunController() {
-        return new WorkflowRunController(null, null);
     }
 }
